@@ -11,15 +11,16 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
 	"github.com/maybemaby/workpad/api/auth"
 )
 
 type Server struct {
-	logger *slog.Logger
-	port   string
-	srv    *http.Server
-	db     *sql.DB
-	// dbx *sqlx.DB
+	logger   *slog.Logger
+	port     string
+	srv      *http.Server
+	db       *sql.DB
+	sqliteDB *sqlx.DB
 	pool       *pgxpool.Pool
 	services   *services
 	jwtManager *auth.JwtManager
@@ -45,6 +46,14 @@ func NewServer(isProd bool) (*Server, error) {
 
 	server.db = db
 	server.pool = pool
+
+	// Initialize SQLite connection
+	sqliteDB, err := NewSqliteDB(context.Background(), !isProd)
+	if err != nil {
+		return nil, err
+	}
+
+	server.sqliteDB = sqliteDB
 
 	jwtManager := &auth.JwtManager{
 		AccessTokenSecret:    []byte(os.Getenv("ACCESS_TOKEN_SECRET")),
