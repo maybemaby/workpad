@@ -23,6 +23,10 @@ type GetProjectRequest struct {
 	ID int `path:"id" example:"1"`
 }
 
+type ListProjectsRequest struct {
+	Prefix string `query:"prefix" example:"Proj" required:"false"`
+}
+
 // CreateProject handles POST /projects
 func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	var req CreateProjectRequest
@@ -74,7 +78,9 @@ func (h *ProjectHandler) GetProject(w http.ResponseWriter, r *http.Request) {
 
 // ListProjects handles GET /projects
 func (h *ProjectHandler) ListProjects(w http.ResponseWriter, r *http.Request) {
-	projects, err := h.store.GetAll(r.Context())
+	namePrefix := r.URL.Query().Get("prefix")
+
+	projects, err := h.store.GetAll(r.Context(), namePrefix)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -102,7 +108,7 @@ func (h *ProjectHandler) CreateMultipleProjects(w http.ResponseWriter, r *http.R
 	if err != nil {
 		errMsg := err.Error()
 		// Check if error is a duplicate name error
-		if errors.Is(err, ErrProjectNameConflict) || contains(errMsg, "duplicate project name") {
+		if errors.Is(err, ErrProjectNameConflict) {
 			http.Error(w, errMsg, http.StatusConflict)
 			return
 		}
@@ -113,14 +119,4 @@ func (h *ProjectHandler) CreateMultipleProjects(w http.ResponseWriter, r *http.R
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(projects)
-}
-
-// contains is a simple string contains helper
-func contains(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

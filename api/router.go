@@ -30,7 +30,7 @@ func (s *Server) MountRoutesOapi() {
 	googleHandler := NewGoogleHandler(s.pool, s.jwtManager)
 
 	rootMw := RootMiddleware(s.logger, MiddlewareConfig{
-		CorsOrigin: "http://localhost:3001",
+		CorsOrigin: "http://localhost:5173",
 	})
 
 	authMw := rootMw.Append(auth.RequireAccessToken(s.jwtManager))
@@ -102,6 +102,7 @@ func (s *Server) MountRoutesOapi() {
 	)
 
 	r.Handle("GET /projects", rootMw.ThenFunc(projectsHandler.ListProjects)).With(
+		option.Request(new(projects.ListProjectsRequest)),
 		option.Response(200, new([]projects.Project)),
 		option.Tags("Projects"),
 	)

@@ -30,10 +30,12 @@ func (s *SqliteStore) Create(ctx context.Context, name string) (*Project, error)
 		return nil, fmt.Errorf("project name cannot be empty")
 	}
 
+	cleanedName := strings.TrimSpace(name)
+
 	query := `INSERT INTO projects (name) VALUES (?) RETURNING id, name, created_at`
 
 	var project Project
-	err := s.db.QueryRowContext(ctx, query, name).Scan(&project.ID, &project.Name, &project.CreatedAt)
+	err := s.db.QueryRowContext(ctx, query, cleanedName).Scan(&project.ID, &project.Name, &project.CreatedAt)
 	if err != nil {
 		// Check for UNIQUE constraint violation
 		if isSQLiteConstraintError(err) {
@@ -57,18 +59,24 @@ func (s *SqliteStore) CreateMultiple(ctx context.Context, names []string) ([]Pro
 		return nil, fmt.Errorf("project name cannot be empty")
 	}
 
+	cleanedNames := make([]string, len(names))
+	
+	for i, name := range names {
+		cleanedNames[i] = strings.TrimSpace(name)
+	}
+
 	// Start a transaction
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	
+
 	defer tx.Rollback()
 
 	var projects []Project
 
 	// Insert each project
-	for _, name := range names {
+	for _, name := range cleanedNames {
 		query := `INSERT INTO projects (name) VALUES (?) RETURNING id, name, created_at`
 
 		var project Project
@@ -109,11 +117,22 @@ func (s *SqliteStore) GetByID(ctx context.Context, id int) (*Project, error) {
 }
 
 // GetAll retrieves all projects ordered by creation date (newest first)
-func (s *SqliteStore) GetAll(ctx context.Context) ([]Project, error) {
-	query := `SELECT id, name, created_at FROM projects ORDER BY created_at DESC`
+// If namePrefix is not empty, filters projects by name prefix (case-insensitive)
+func (s *SqliteStore) GetAll(ctx context.Context, namePrefix string) ([]Project, error) {
+	var query string
+	var args []any
+
+	if namePrefix != "" {
+		// Filter by name prefix (case-insensitive)
+		query = `SELECT id, name, created_at FROM projects WHERE LOWER(name) LIKE LOWER(?) ORDER BY created_at DESC`
+		args = []any{namePrefix + "%"}
+	} else {
+		// Get all projects
+		query = `SELECT id, name, created_at FROM projects ORDER BY created_at DESC`
+	}
 
 	var projects []Project
-	err := s.db.SelectContext(ctx, &projects, query)
+	err := s.db.SelectContext(ctx, &projects, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get projects: %w", err)
 	}

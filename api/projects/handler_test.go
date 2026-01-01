@@ -16,7 +16,7 @@ type mockStore struct {
 	createFunc         func(ctx context.Context, name string) (*Project, error)
 	createMultipleFunc func(ctx context.Context, names []string) ([]Project, error)
 	getByIDFunc        func(ctx context.Context, id int) (*Project, error)
-	getAllFunc         func(ctx context.Context) ([]Project, error)
+	getAllFunc         func(ctx context.Context, namePrefix string) ([]Project, error)
 }
 
 func (m *mockStore) Create(ctx context.Context, name string) (*Project, error) {
@@ -40,9 +40,9 @@ func (m *mockStore) GetByID(ctx context.Context, id int) (*Project, error) {
 	return nil, nil
 }
 
-func (m *mockStore) GetAll(ctx context.Context) ([]Project, error) {
+func (m *mockStore) GetAll(ctx context.Context, namePrefix string) ([]Project, error) {
 	if m.getAllFunc != nil {
-		return m.getAllFunc(ctx)
+		return m.getAllFunc(ctx, namePrefix)
 	}
 	return nil, nil
 }
@@ -217,7 +217,7 @@ func TestListProjects_Success(t *testing.T) {
 	}
 
 	mock := &mockStore{
-		getAllFunc: func(ctx context.Context) ([]Project, error) {
+		getAllFunc: func(ctx context.Context, namePrefix string) ([]Project, error) {
 			return projects, nil
 		},
 	}
@@ -245,7 +245,7 @@ func TestListProjects_Success(t *testing.T) {
 // TestListProjects_Empty tests listing when no projects exist
 func TestListProjects_Empty(t *testing.T) {
 	mock := &mockStore{
-		getAllFunc: func(ctx context.Context) ([]Project, error) {
+		getAllFunc: func(ctx context.Context, namePrefix string) ([]Project, error) {
 			return []Project{}, nil
 		},
 	}
@@ -273,7 +273,7 @@ func TestListProjects_Empty(t *testing.T) {
 // TestListProjects_DatabaseError tests database error handling
 func TestListProjects_DatabaseError(t *testing.T) {
 	mock := &mockStore{
-		getAllFunc: func(ctx context.Context) ([]Project, error) {
+		getAllFunc: func(ctx context.Context, namePrefix string) ([]Project, error) {
 			return nil, errors.New("database error")
 		},
 	}
