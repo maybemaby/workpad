@@ -18,3 +18,4 @@ This project is a general purpose API template.
 - Use standard net/http handlers.
 - Define api handlers in the `/api` folder.
 - Domain specific logic can go in individual folders in `/api`.
+- Use modern stdlib packages like `slices` `strings` and `maps` for common operations.

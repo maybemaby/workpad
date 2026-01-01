@@ -1,0 +1,126 @@
+package projects
+
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"strconv"
+
+	"github.com/maybemaby/workpad/api/utils"
+)
+
+// ProjectHandler handles HTTP requests for projects
+type ProjectHandler struct {
+	store ProjectStore
+}
+
+// NewHandler creates a new projects handler
+func NewHandler(store ProjectStore) *ProjectHandler {
+	return &ProjectHandler{store: store}
+}
+
+type GetProjectRequest struct {
+	ID int `path:"id" example:"1"`
+}
+
+// CreateProject handles POST /projects
+func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
+	var req CreateProjectRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	project, err := h.store.Create(r.Context(), req.Name)
+	if err != nil {
+		// Handle unique constraint violation
+		if errors.Is(err, ErrProjectNameConflict) {
+			http.Error(w, "Project name already exists", http.StatusConflict)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(project)
+}
+
+// GetProject handles GET /projects/{id}
+func (h *ProjectHandler) GetProject(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid project ID", http.StatusBadRequest)
+		return
+	}
+
+	project, err := h.store.GetByID(r.Context(), id)
+	if err != nil {
+		if err.Error() == "project not found" {
+			http.Error(w, "Project not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(project)
+}
+
+// ListProjects handles GET /projects
+func (h *ProjectHandler) ListProjects(w http.ResponseWriter, r *http.Request) {
+	projects, err := h.store.GetAll(r.Context())
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	utils.WriteJSON(w, r, projects)
+}
+
+// CreateMultipleProjects handles POST /projects/batch
+func (h *ProjectHandler) CreateMultipleProjects(w http.ResponseWriter, r *http.Request) {
+	var req CreateMultipleProjectsRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Projects) == 0 {
+		http.Error(w, "Projects list cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	projects, err := h.store.CreateMultiple(r.Context(), req.Projects)
+	if err != nil {
+		errMsg := err.Error()
+		// Check if error is a duplicate name error
+		if errors.Is(err, ErrProjectNameConflict) || contains(errMsg, "duplicate project name") {
+			http.Error(w, errMsg, http.StatusConflict)
+			return
+		}
+		http.Error(w, errMsg, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(projects)
+}
+
+// contains is a simple string contains helper
+func contains(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}

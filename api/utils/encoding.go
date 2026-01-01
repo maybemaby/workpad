@@ -8,15 +8,13 @@ import (
 )
 
 func ReadJSON[T any](r *http.Request, target T) error {
-	dec := json.NewDecoder(r.Body)
-	return dec.Decode(target)
+	return json.NewDecoder(r.Body).Decode(target)
 }
 
 func WriteJSON[T any](w http.ResponseWriter, r *http.Request, data T) error {
 	w.Header().Set("Content-Type", "application/json")
-	enc := json.NewEncoder(w)
 
-	err := enc.Encode(data)
+	err := json.NewEncoder(w).Encode(data)
 
 	if err != nil {
 		return err

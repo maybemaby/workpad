@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/maybemaby/workpad/api/auth"
+	"github.com/maybemaby/workpad/api/projects"
 	"github.com/oaswrap/spec-ui/config"
 	"github.com/oaswrap/spec/adapter/httpopenapi"
 	"github.com/oaswrap/spec/option"
@@ -55,6 +56,7 @@ func (s *Server) MountRoutesOapi() {
 			spec, err := r.MarshalJSON()
 
 			if err != nil {
+				s.logger.Error("Error generating OpenAPI spec", "error", err)
 				http.Error(w, "Error generating OpenAPI spec", http.StatusInternalServerError)
 				return
 			}
@@ -88,6 +90,34 @@ func (s *Server) MountRoutesOapi() {
 
 	authRoute.Handle("GET /google", rootMw.ThenFunc(googleHandler.HandleAuth))
 	authRoute.Handle("GET /google/callback", rootMw.ThenFunc(googleHandler.HandleCallback))
+
+	// Projects routes
+	projectsStore := projects.NewSqliteStore(s.sqliteDB)
+	projectsHandler := projects.NewHandler(projectsStore)
+
+	r.Handle("POST /projects", rootMw.ThenFunc(projectsHandler.CreateProject)).With(
+		option.Request(new(projects.CreateProjectRequest)),
+		option.Response(201, new(projects.Project)),
+		option.Tags("Projects"),
+	)
+
+	r.Handle("GET /projects", rootMw.ThenFunc(projectsHandler.ListProjects)).With(
+		option.Response(200, new([]projects.Project)),
+		option.Tags("Projects"),
+	)
+
+	r.Handle("GET /projects/{id}", rootMw.ThenFunc(projectsHandler.GetProject)).With(
+		option.Request(new(projects.GetProjectRequest)),
+		option.Response(200, new(projects.Project)),
+		option.Response(404, "Not Found"),
+		option.Tags("Projects"),
+	)
+
+	r.Handle("POST /projects/batch", rootMw.ThenFunc(projectsHandler.CreateMultipleProjects)).With(
+		option.Request(new(projects.CreateMultipleProjectsRequest)),
+		option.Response(201, new([]projects.Project)),
+		option.Tags("Projects"),
+	)
 
 	srv := &http.Server{
 		Addr:    ":" + s.port,
