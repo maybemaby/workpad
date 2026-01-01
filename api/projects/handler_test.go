@@ -94,11 +94,18 @@ func TestCreateProject_InvalidBody(t *testing.T) {
 	}
 }
 
-// TestCreateProject_NameConflict tests duplicate project name error
-func TestCreateProject_NameConflict(t *testing.T) {
+// TestCreateProject_DuplicateName tests creating a project with a duplicate name returns existing project
+func TestCreateProject_DuplicateName(t *testing.T) {
+	existingProject := &Project{
+		ID:        1,
+		Name:      "Duplicate",
+		CreatedAt: time.Now(),
+	}
+
 	mock := &mockStore{
 		createFunc: func(ctx context.Context, name string) (*Project, error) {
-			return nil, ErrProjectNameConflict
+			// Return existing project since upsert doesn't change on conflict
+			return existingProject, nil
 		},
 	}
 
@@ -108,13 +115,17 @@ func TestCreateProject_NameConflict(t *testing.T) {
 
 	handler.CreateProject(w, req)
 
-	if w.Code != http.StatusConflict {
-		t.Errorf("expected status %d, got %d", http.StatusConflict, w.Code)
+	if w.Code != http.StatusCreated {
+		t.Errorf("expected status %d, got %d", http.StatusCreated, w.Code)
 	}
 
-	body := w.Body.String()
-	if !strings.Contains(body, "Project name already exists") {
-		t.Errorf("expected error message about duplicate, got: %s", body)
+	var result Project
+	if err := json.NewDecoder(w.Body).Decode(&result); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if result.ID != 1 || result.Name != "Duplicate" {
+		t.Errorf("expected existing project to be returned, got: %+v", result)
 	}
 }
 
@@ -355,11 +366,16 @@ func TestCreateMultipleProjects_InvalidBody(t *testing.T) {
 	}
 }
 
-// TestCreateMultipleProjects_DuplicateName tests duplicate name handling in batch
-func TestCreateMultipleProjects_DuplicateName(t *testing.T) {
+// TestCreateMultipleProjects_WithDuplicates tests batch creation with duplicate names returns all projects
+func TestCreateMultipleProjects_WithDuplicates(t *testing.T) {
+	projects := []Project{
+		{ID: 1, Name: "Project 1", CreatedAt: time.Now()},
+	}
+
 	mock := &mockStore{
 		createMultipleFunc: func(ctx context.Context, names []string) ([]Project, error) {
-			return nil, errors.New("duplicate project name: Project 1")
+			// Upsert ignores duplicates, so we get unique projects back
+			return projects, nil
 		},
 	}
 
@@ -370,13 +386,17 @@ func TestCreateMultipleProjects_DuplicateName(t *testing.T) {
 
 	handler.CreateMultipleProjects(w, req)
 
-	if w.Code != http.StatusConflict {
-		t.Errorf("expected status %d, got %d", http.StatusConflict, w.Code)
+	if w.Code != http.StatusCreated {
+		t.Errorf("expected status %d, got %d", http.StatusCreated, w.Code)
 	}
 
-	bodyStr := w.Body.String()
-	if !strings.Contains(bodyStr, "duplicate project name") {
-		t.Errorf("expected error message about duplicate, got: %s", bodyStr)
+	var result []Project
+	if err := json.NewDecoder(w.Body).Decode(&result); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if len(result) != 1 {
+		t.Errorf("expected 1 unique project, got %d", len(result))
 	}
 }
 

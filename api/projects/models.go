@@ -3,16 +3,16 @@ package projects
 import "time"
 
 type Project struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	ID        int       `json:"id" required:"true"`
+	Name      string    `json:"name" required:"true"`
+	CreatedAt time.Time `json:"created_at" db:"created_at" required:"true"`
 }
 
 type CreateProjectRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" required:"true"`
 }
 
 // CreateMultipleProjectsRequest is the request body for batch project creation
 type CreateMultipleProjectsRequest struct {
-	Projects []string `json:"projects" example:"[Project A, Project B]"`
+	Projects []string `json:"projects" example:"[Project A, Project B]" required:"true"`
 }

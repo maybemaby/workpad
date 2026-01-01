@@ -12,9 +12,18 @@ CREATE TABLE notes (
     date DATETIME NOT NULL
 );
 
+CREATE TABLE project_excerpts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    excerpt TEXT NOT NULL,
+    date DATETIME NOT NULL
+);
+
 -- +goose StatementEnd
 -- +goose Down
 -- +goose StatementBegin
+DROP TABLE project_excerpts;
 DROP TABLE projects;
 DROP TABLE notes;
 

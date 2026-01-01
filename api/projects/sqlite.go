@@ -3,16 +3,12 @@ package projects
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
 )
-
-// ErrProjectNameConflict is returned when a project with the same name already exists
-var ErrProjectNameConflict = errors.New("project name already exists")
 
 // SqliteStore implements the Store interface using SQLite
 type SqliteStore struct {
@@ -24,7 +20,9 @@ func NewSqliteStore(db *sqlx.DB) *SqliteStore {
 	return &SqliteStore{db: db}
 }
 
-// Create inserts a new project into the database
+// Create inserts a new project or returns the existing one if name already exists
+// Uses SQLite UPSERT syntax: INSERT ... ON CONFLICT ... DO NOTHING
+// This is atomic and returns the project (new or existing)
 func (s *SqliteStore) Create(ctx context.Context, name string) (*Project, error) {
 	if name == "" {
 		return nil, fmt.Errorf("project name cannot be empty")
@@ -32,23 +30,29 @@ func (s *SqliteStore) Create(ctx context.Context, name string) (*Project, error)
 
 	cleanedName := strings.TrimSpace(name)
 
-	query := `INSERT INTO projects (name) VALUES (?) RETURNING id, name, created_at`
+	// SQLite upsert: insert if not exists, do nothing if conflict on unique constraint
+	// Then retrieve the (existing or newly created) project
+	query := `INSERT INTO projects (name) VALUES (?) ON CONFLICT(name) DO NOTHING`
 
-	var project Project
-	err := s.db.QueryRowContext(ctx, query, cleanedName).Scan(&project.ID, &project.Name, &project.CreatedAt)
+	_, err := s.db.ExecContext(ctx, query, cleanedName)
 	if err != nil {
-		// Check for UNIQUE constraint violation
-		if isSQLiteConstraintError(err) {
-			return nil, ErrProjectNameConflict
-		}
 		return nil, fmt.Errorf("failed to create project: %w", err)
+	}
+
+	// Retrieve the project (existing or newly created) by name
+	getQuery := `SELECT id, name, created_at FROM projects WHERE name = ?`
+	var project Project
+	err = s.db.QueryRowContext(ctx, getQuery, cleanedName).Scan(&project.ID, &project.Name, &project.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve project: %w", err)
 	}
 
 	return &project, nil
 }
 
-// CreateMultiple inserts multiple projects into the database
-// Uses a transaction to ensure all-or-nothing semantics
+// CreateMultiple inserts multiple projects using SQLite upsert syntax
+// Uses a transaction to ensure atomicity
+// Projects with duplicate names will be ignored (no change if already exist)
 func (s *SqliteStore) CreateMultiple(ctx context.Context, names []string) ([]Project, error) {
 	if len(names) == 0 {
 		return []Project{}, nil
@@ -60,7 +64,7 @@ func (s *SqliteStore) CreateMultiple(ctx context.Context, names []string) ([]Pro
 	}
 
 	cleanedNames := make([]string, len(names))
-	
+
 	for i, name := range names {
 		cleanedNames[i] = strings.TrimSpace(name)
 	}
@@ -75,18 +79,21 @@ func (s *SqliteStore) CreateMultiple(ctx context.Context, names []string) ([]Pro
 
 	var projects []Project
 
-	// Insert each project
+	// Insert each project using SQLite upsert syntax
 	for _, name := range cleanedNames {
-		query := `INSERT INTO projects (name) VALUES (?) RETURNING id, name, created_at`
+		query := `INSERT INTO projects (name) VALUES (?) ON CONFLICT(name) DO NOTHING`
 
-		var project Project
-		err := tx.QueryRowContext(ctx, query, name).Scan(&project.ID, &project.Name, &project.CreatedAt)
+		_, err := tx.ExecContext(ctx, query, name)
 		if err != nil {
-			// Check for UNIQUE constraint violation
-			if isSQLiteConstraintError(err) {
-				return nil, fmt.Errorf("duplicate project name: %s", name)
-			}
 			return nil, fmt.Errorf("failed to create project: %w", err)
+		}
+
+		// Retrieve the project (existing or newly created) by name
+		getQuery := `SELECT id, name, created_at FROM projects WHERE name = ?`
+		var project Project
+		err = tx.QueryRowContext(ctx, getQuery, name).Scan(&project.ID, &project.Name, &project.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve project: %w", err)
 		}
 
 		projects = append(projects, project)
@@ -143,16 +150,4 @@ func (s *SqliteStore) GetAll(ctx context.Context, namePrefix string) ([]Project,
 	}
 
 	return projects, nil
-}
-
-// isSQLiteConstraintError checks if the error is a SQLite constraint violation
-// SQLite returns error messages like "UNIQUE constraint failed: projects.name"
-func isSQLiteConstraintError(err error) bool {
-	if err == nil {
-		return false
-	}
-	errMsg := err.Error()
-	// Check for UNIQUE constraint violation in error message
-	return strings.Contains(errMsg, "UNIQUE constraint failed") ||
-		strings.Contains(errMsg, "unique constraint failed")
 }

@@ -2,7 +2,6 @@ package projects
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -28,6 +27,7 @@ type ListProjectsRequest struct {
 }
 
 // CreateProject handles POST /projects
+// Returns the created project or an existing project with the same name
 func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	var req CreateProjectRequest
 
@@ -38,11 +38,6 @@ func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 
 	project, err := h.store.Create(r.Context(), req.Name)
 	if err != nil {
-		// Handle unique constraint violation
-		if errors.Is(err, ErrProjectNameConflict) {
-			http.Error(w, "Project name already exists", http.StatusConflict)
-			return
-		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -91,6 +86,7 @@ func (h *ProjectHandler) ListProjects(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateMultipleProjects handles POST /projects/batch
+// Returns all projects after upserting the provided names
 func (h *ProjectHandler) CreateMultipleProjects(w http.ResponseWriter, r *http.Request) {
 	var req CreateMultipleProjectsRequest
 
@@ -106,13 +102,7 @@ func (h *ProjectHandler) CreateMultipleProjects(w http.ResponseWriter, r *http.R
 
 	projects, err := h.store.CreateMultiple(r.Context(), req.Projects)
 	if err != nil {
-		errMsg := err.Error()
-		// Check if error is a duplicate name error
-		if errors.Is(err, ErrProjectNameConflict) {
-			http.Error(w, errMsg, http.StatusConflict)
-			return
-		}
-		http.Error(w, errMsg, http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
