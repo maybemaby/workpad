@@ -26,6 +26,8 @@ func seedNotes(ctx context.Context, db *sqlx.DB) []Note {
 		{HTMLContent: "<p>Note for 2026-01-01</p>", Date: mustParseTime(time.DateOnly, "2026-01-01")},
 		{HTMLContent: "<p>Note for 2026-01-02</p>", Date: mustParseTime(time.DateOnly, "2026-01-02")},
 		{HTMLContent: "<p>Note for 2026-01-03</p>", Date: mustParseTime(time.DateOnly, "2026-01-03")},
+		{HTMLContent: "<p>Note for 2026-03-10</p>", Date: mustParseTime(time.DateOnly, "2025-01-10")},
+		{HTMLContent: "<p>Note for 2026-03-15</p>", Date: mustParseTime(time.DateOnly, "2026-03-15")},
 	}
 
 	tx := db.MustBegin()
@@ -102,6 +104,23 @@ func (s *NoteStoreSuite) TestCreateNote_UpdateExistingNote() {
 	s.NoError(err)
 	s.Equal("<p>Updated Note for 2026-01-02</p>", note.HTMLContent)
 	s.Equal("2026-01-02", note.Date.Format(time.DateOnly))
+}
+
+func (s *NoteStoreSuite) TestGetNoteDatesForMonth() {
+	store := NewNoteService(s.dbx)
+
+	days, err := store.GetNoteDatesForMonth(s.T().Context(), 2026, time.January)
+
+	s.NoError(err)
+	s.ElementsMatch([]int{1, 2, 3}, days)
+}
+
+func (s *NoteStoreSuite) TestGetNoteDatesForMonth_NoNotes() {
+	store := NewNoteService(s.dbx)
+	days, err := store.GetNoteDatesForMonth(s.T().Context(), 2026, time.February)
+
+	s.NoError(err)
+	s.Empty(days)
 }
 
 func TestNoteStoreSuite(t *testing.T) {

@@ -138,6 +138,12 @@ func (s *Server) MountRoutesOapi() {
 		option.Tags("Notes"),
 	)
 
+	r.Handle("GET /notes/for-month", rootMw.ThenFunc(notesHandler.GetMonthNotes)).With(
+		option.Request(new(notes.GetMonthNotesRequest)),
+		option.Response(200, new([]int)),
+		option.Tags("Notes"),
+	)
+
 	// For CORS preflight requests
 	r.Handle("/", rootMw.ThenFunc(
 		func(w http.ResponseWriter, r *http.Request) {

@@ -10,6 +10,7 @@ import (
 type NoteStore interface {
 	GetNoteByDate(ctx context.Context, date time.Time) (Note, error)
 	CreateNote(ctx context.Context, htmlContent string, date time.Time) (Note, error)
+	GetNoteDatesForMonth(ctx context.Context, year int, month time.Month) ([]int, error)
 }
 
 type NoteService struct {
@@ -42,4 +43,29 @@ func (s *NoteService) CreateNote(ctx context.Context, htmlContent string, date t
 		HTMLContent: htmlContent,
 		Date:        date,
 	}, nil
+}
+
+func (s *NoteService) GetNoteDatesForMonth(ctx context.Context, year int, month time.Month) ([]int, error) {
+	var days []int
+
+	startDate := time.Date(year, month, 1, 0, 0, 0, 0, time.Local)
+	endDate := startDate.AddDate(0, 1, -1)
+
+	rows, err := s.db.QueryxContext(ctx, `SELECT strftime('%d', note_date) FROM notes WHERE note_date >= ? AND note_date <= ?`, startDate.Format(time.DateOnly), endDate.Format(time.DateOnly))
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var day int
+		if err := rows.Scan(&day); err != nil {
+			return nil, err
+		}
+		days = append(days, day)
+	}
+
+	return days, nil
 }

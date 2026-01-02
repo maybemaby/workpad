@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/maybemaby/workpad/api/utils"
@@ -19,6 +20,11 @@ func NewNoteHandler(noteStore NoteStore) *NoteHandler {
 
 type GetNoteByDateRequest struct {
 	Date string `query:"date" example:"2026-01-01" required:"true"`
+}
+
+type GetMonthNotesRequest struct {
+	Year  int `query:"year" example:"2026" required:"true"`
+	Month int `query:"month" example:"1" required:"true"`
 }
 
 func (h *NoteHandler) GetNoteByDate(w http.ResponseWriter, r *http.Request) {
@@ -64,4 +70,32 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteJSON(w, r, note)
+}
+
+func (h *NoteHandler) GetMonthNotes(w http.ResponseWriter, r *http.Request) {
+	month := r.URL.Query().Get("month")
+	year := r.URL.Query().Get("year")
+
+	monthInt, err := strconv.Atoi(month)
+
+	if err != nil || monthInt < 1 || monthInt > 12 {
+		http.Error(w, "Invalid month parameter", http.StatusBadRequest)
+		return
+	}
+
+	yearInt, err := strconv.Atoi(year)
+
+	if err != nil || yearInt < 1 {
+		http.Error(w, "Invalid year parameter", http.StatusBadRequest)
+		return
+	}
+
+	days, err := h.noteStore.GetNoteDatesForMonth(r.Context(), yearInt, time.Month(monthInt))
+
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	utils.WriteJSON(w, r, days)
 }
