@@ -20,10 +20,16 @@ type NoteExcerpt struct {
 	Date      string `json:"date" required:"true" db:"note_date"`
 }
 
-type CreateNoteExcerptRequest struct {
+type UpdateNoteExcerptRequest struct {
+	Date     string        `json:"date" required:"true" example:"2026-01-01"`
+	Excerpts []ExcerptNode `json:"excerpts" required:"true" nullable:"false"`
+}
+
+type UpdateNoteExcerptData struct {
+	Excerpts []ExcerptNode `json:"excerpts" required:"true"`
 }
 
 type ExcerptNode struct {
-	Node     string   `json:"node" required:"true"`
-	Projects []string `json:"project" required:"true"`
+	Node     string   `json:"node" required:"true" example:"{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Sample excerpt text.\"}]}"`
+	Projects []string `json:"projects" example:"[Project A,Project B]" required:"true" nullable:"false"`
 }

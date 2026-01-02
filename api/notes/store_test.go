@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/maybemaby/workpad/api/projects"
 	"github.com/maybemaby/workpad/api/utils"
 	"github.com/stretchr/testify/suite"
 	_ "modernc.org/sqlite"
@@ -19,6 +20,28 @@ func mustParseTime(layout, value string) time.Time {
 	}
 
 	return t
+}
+
+func seedProjects(ctx context.Context, db *sqlx.DB) []projects.Project {
+	projectNames := []string{"Project Alpha", "Beta Project", "Gamma", "Delta Force"}
+
+	tx := db.MustBegin()
+
+	defer tx.Commit()
+	var projectsInserted []projects.Project
+
+	for _, name := range projectNames {
+		var proj projects.Project
+		row := tx.QueryRowContext(ctx, "INSERT INTO projects (name) VALUES (?) RETURNING name, created_at", name)
+
+		if err := row.Scan(&proj.Name, &proj.CreatedAt); err != nil {
+			panic(err)
+		}
+
+		projectsInserted = append(projectsInserted, proj)
+	}
+
+	return projectsInserted
 }
 
 func seedNotes(ctx context.Context, db *sqlx.DB) []Note {
@@ -62,6 +85,7 @@ func (s *NoteStoreSuite) SetupTest() {
 	}
 
 	seedNotes(s.T().Context(), s.dbx)
+	seedProjects(s.T().Context(), s.dbx)
 }
 
 func (s *NoteStoreSuite) TearDownTest() {
@@ -121,6 +145,43 @@ func (s *NoteStoreSuite) TestGetNoteDatesForMonth_NoNotes() {
 
 	s.NoError(err)
 	s.Empty(days)
+}
+
+func (s *NoteStoreSuite) TestUpdateExcerpts() {
+	store := NewNoteService(s.dbx)
+
+	excerpts := []ExcerptNode{
+		{Node: "Excerpt 1", Projects: []string{"Project Alpha", "Beta Project"}},
+		{Node: "Excerpt 2", Projects: []string{"Gamma"}},
+	}
+
+	err := store.UpdateExcerptsForDate(s.T().Context(), mustParseTime(time.DateOnly, "2026-01-02"), excerpts)
+
+	s.NoError(err)
+}
+
+func (s *NoteStoreSuite) TestUpdateExcerpts_NoteNotFound() {
+	store := NewNoteService(s.dbx)
+
+	excerpts := []ExcerptNode{
+		{Node: "Excerpt 1", Projects: []string{"Project Alpha", "Beta Project"}},
+	}
+
+	err := store.UpdateExcerptsForDate(s.T().Context(), mustParseTime(time.DateOnly, "2026-12-31"), excerpts)
+
+	s.ErrorIs(err, sql.ErrNoRows)
+}
+
+func (s *NoteStoreSuite) TestUpdateExcerpts_ProjectNotFound() {
+	store := NewNoteService(s.dbx)
+
+	excerpts := []ExcerptNode{
+		{Node: "Excerpt 1", Projects: []string{"Nonexistent Project"}},
+	}
+
+	err := store.UpdateExcerptsForDate(s.T().Context(), mustParseTime(time.DateOnly, "2026-01-02"), excerpts)
+
+	s.NoError(err)
 }
 
 func TestNoteStoreSuite(t *testing.T) {

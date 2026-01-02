@@ -99,3 +99,29 @@ func (h *NoteHandler) GetMonthNotes(w http.ResponseWriter, r *http.Request) {
 
 	utils.WriteJSON(w, r, days)
 }
+
+func (h *NoteHandler) UpdateNoteExcerpts(w http.ResponseWriter, r *http.Request) {
+
+	var data UpdateNoteExcerptRequest
+
+	if err := utils.ReadJSON(r, &data); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	parsedDate, err := time.Parse(time.DateOnly, data.Date)
+
+	if err != nil {
+		http.Error(w, "Invalid date format. Use YYYY-MM-DD.", http.StatusBadRequest)
+		return
+	}
+
+	err = h.noteStore.UpdateExcerptsForDate(r.Context(), parsedDate, data.Excerpts)
+
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

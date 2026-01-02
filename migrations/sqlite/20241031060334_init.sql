@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE projects (    
-    name TEXT PRIMARY KEY,
+    name TEXT PRIMARY KEY NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -13,7 +13,7 @@ CREATE TABLE notes (
 
 CREATE TABLE project_excerpts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    project_name TEXT NOT NULL REFERENCES projects(name) ON DELETE CASCADE ON UPDATE CASCADE,
     note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE ON UPDATE CASCADE,
     excerpt TEXT NOT NULL,
     note_date DATETIME NOT NULL

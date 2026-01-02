@@ -150,6 +150,12 @@ func (s *Server) MountRoutesOapi() {
 		option.Tags("Notes"),
 	)
 
+	r.Handle("PUT /notes/excerpts", rootMw.ThenFunc(notesHandler.UpdateNoteExcerpts)).With(
+		option.Request(new(notes.UpdateNoteExcerptRequest)),
+		option.Response(204, nil),
+		option.Tags("Notes"),
+	)
+
 	// For CORS preflight requests
 	r.Handle("/", rootMw.ThenFunc(
 		func(w http.ResponseWriter, r *http.Request) {

@@ -11,6 +11,7 @@ type NoteStore interface {
 	GetNoteByDate(ctx context.Context, date time.Time) (Note, error)
 	CreateNote(ctx context.Context, htmlContent string, date time.Time) (Note, error)
 	GetNoteDatesForMonth(ctx context.Context, year int, month time.Month) ([]int, error)
+	UpdateExcerptsForDate(ctx context.Context, date time.Time, excerpts []ExcerptNode) error
 }
 
 type NoteService struct {
@@ -69,4 +70,43 @@ func (s *NoteService) GetNoteDatesForMonth(ctx context.Context, year int, month 
 	}
 
 	return days, nil
+}
+
+func (s *NoteService) UpdateExcerptsForDate(ctx context.Context, date time.Time, excerpts []ExcerptNode) error {
+
+	note, err := s.GetNoteByDate(ctx, date)
+
+	if err != nil {
+		return err
+	}
+
+	tx, err := s.db.BeginTxx(ctx, nil)
+
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx, `DELETE FROM project_excerpts WHERE note_date = ?`, date.Format(time.DateOnly))
+
+	if err != nil {
+		return err
+	}
+
+	insertStmt, err := tx.PrepareContext(ctx, `INSERT INTO project_excerpts (project_name, note_id, excerpt, note_date) VALUES (?, ?, ?, ?)`)
+
+	if err != nil {
+		return err
+	}
+
+	defer insertStmt.Close()
+
+	for _, excerptNode := range excerpts {
+		for _, projectName := range excerptNode.Projects {
+			insertStmt.ExecContext(ctx, projectName, note.Id, excerptNode.Node, date.Format(time.DateOnly))
+		}
+	}
+
+	return tx.Commit()
 }
