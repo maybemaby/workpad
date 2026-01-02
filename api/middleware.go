@@ -35,6 +35,7 @@ func CorsMiddleware(origin string) alice.Constructor {
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-User-Agent, Cache-Control")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Max-Age", "3600")
 
 			if r.Method == "OPTIONS" {
 				w.WriteHeader(http.StatusOK)
@@ -93,5 +94,5 @@ func RootMiddleware(logger *slog.Logger, cfg MiddlewareConfig) alice.Chain {
 		HostsProxyHeaders: []string{"X-Forwarded-Host"},
 	})
 
-	return alice.New(RequestIdMiddleware(), LoggingMiddleware(logger), CorsMiddleware(cfg.CorsOrigin), secureMw.Handler)
+	return alice.New(CorsMiddleware(cfg.CorsOrigin), RequestIdMiddleware(), LoggingMiddleware(logger), secureMw.Handler)
 }
