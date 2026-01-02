@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/maybemaby/workpad/api/auth"
+	"github.com/maybemaby/workpad/api/notes"
 	"github.com/maybemaby/workpad/api/projects"
 	"github.com/oaswrap/spec-ui/config"
 	"github.com/oaswrap/spec/adapter/httpopenapi"
@@ -119,6 +120,35 @@ func (s *Server) MountRoutesOapi() {
 		option.Response(201, new([]projects.Project)),
 		option.Tags("Projects"),
 	)
+
+	// Notes routes
+	noteStore := notes.NewNoteService(s.sqliteDB)
+	notesHandler := notes.NewNoteHandler(noteStore)
+
+	r.Handle("GET /notes/by-date", rootMw.ThenFunc(notesHandler.GetNoteByDate)).With(
+		option.Request(new(notes.GetNoteByDateRequest)),
+		option.Response(200, new(notes.Note)),
+		option.Response(404, "Not Found"),
+		option.Tags("Notes"),
+	)
+
+	r.Handle("POST /notes", rootMw.ThenFunc(notesHandler.CreateNote)).With(
+		option.Request(new(notes.CreateNoteRequest)),
+		option.Response(201, new(notes.Note)),
+		option.Tags("Notes"),
+	)
+
+	// For CORS preflight requests
+	r.Handle("/", rootMw.ThenFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			http.NotFound(w, r)
+		},
+	))
 
 	srv := &http.Server{
 		Addr:    ":" + s.port,

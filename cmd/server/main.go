@@ -18,12 +18,14 @@ import (
 type Args struct {
 	Port   string
 	DbPath string
+	TZ     string
 }
 
 func argParse() Args {
 	var args Args
 	flag.StringVar(&args.Port, "port", "8000", "port to listen on")
 	flag.StringVar(&args.DbPath, "db", "app.db", "path to sqlite db")
+	flag.StringVar(&args.TZ, "tz", "", "timezone for date handling")
 	flag.Parse()
 
 	return args
@@ -35,12 +37,12 @@ func loadEnv() {
 		log.Println("Error loading .env file")
 	}
 
-	location, err := time.LoadLocation("UTC")
+	// location, err := time.LoadLocation("UTC")
 	if err != nil {
 		log.Println("Error loading location")
 	}
 
-	time.Local = location
+	// time.Local = location
 }
 
 func main() {
@@ -51,6 +53,17 @@ func main() {
 	defer stop()
 
 	loadEnv()
+
+	// Dates will be based off specified timezone, uses local timezone of computer if none specified
+	if args.TZ != "" {
+		location, err := time.LoadLocation(args.TZ)
+
+		if err != nil {
+			panic(err)
+		}
+
+		time.Local = location
+	}
 
 	// Otel
 	otelShutdown, err := api.SetupOtel(ctx, api.OtelConfig{

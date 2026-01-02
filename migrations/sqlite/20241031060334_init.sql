@@ -9,7 +9,7 @@ CREATE TABLE projects (
 CREATE TABLE notes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,   
     html_content TEXT NOT NULL,
-    date DATETIME NOT NULL
+    note_date DATETIME NOT NULL UNIQUE
 );
 
 CREATE TABLE project_excerpts (
@@ -17,7 +17,7 @@ CREATE TABLE project_excerpts (
     project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE ON UPDATE CASCADE,
     note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE ON UPDATE CASCADE,
     excerpt TEXT NOT NULL,
-    date DATETIME NOT NULL
+    note_date DATETIME NOT NULL
 );
 
 -- +goose StatementEnd
