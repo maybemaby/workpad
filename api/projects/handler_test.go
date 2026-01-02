@@ -17,6 +17,7 @@ type mockStore struct {
 	createMultipleFunc func(ctx context.Context, names []string) ([]Project, error)
 	getByIDFunc        func(ctx context.Context, id int) (*Project, error)
 	getAllFunc         func(ctx context.Context, namePrefix string) ([]Project, error)
+	deleteFunc         func(ctx context.Context, id int) error
 }
 
 func (m *mockStore) Create(ctx context.Context, name string) (*Project, error) {
@@ -45,6 +46,13 @@ func (m *mockStore) GetAll(ctx context.Context, namePrefix string) ([]Project, e
 		return m.getAllFunc(ctx, namePrefix)
 	}
 	return nil, nil
+}
+
+func (m *mockStore) DeleteByID(ctx context.Context, id int) error {
+	if m.deleteFunc != nil {
+		return m.deleteFunc(ctx, id)
+	}
+	return nil
 }
 
 // TestCreateProject_Success tests successful project creation
@@ -414,6 +422,64 @@ func TestCreateMultipleProjects_DatabaseError(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	handler.CreateMultipleProjects(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+}
+
+// TestDeleteProject_Success tests successful project deletion
+func TestDeleteProject_Success(t *testing.T) {
+	mock := &mockStore{
+		deleteFunc: func(ctx context.Context, id int) error {
+			return nil
+		},
+	}
+
+	handler := NewHandler(mock)
+	req := httptest.NewRequest("DELETE", "/projects/1", nil)
+	req.SetPathValue("id", "1")
+	w := httptest.NewRecorder()
+
+	handler.DeleteProject(w, req)
+
+	if w.Code != http.StatusNoContent {
+		t.Errorf("expected status %d, got %d", http.StatusNoContent, w.Code)
+	}
+}
+
+// TestDeleteProject_InvalidID tests deletion with invalid project ID
+func TestDeleteProject_InvalidID(t *testing.T) {
+	mock := &mockStore{}
+	handler := NewHandler(mock)
+
+	req := httptest.NewRequest("DELETE", "/projects/invalid", nil)
+	req.SetPathValue("id", "invalid")
+
+	w := httptest.NewRecorder()
+
+	handler.DeleteProject(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+}
+
+// TestDeleteProject_DatabaseError tests database error handling during deletion
+func TestDeleteProject_DatabaseError(t *testing.T) {
+	mock := &mockStore{
+		deleteFunc: func(ctx context.Context, id int) error {
+			return errors.New("database error")
+		},
+	}
+
+	handler := NewHandler(mock)
+	req := httptest.NewRequest("DELETE", "/projects/1", nil)
+	req.SetPathValue("id", "1")
+	
+	w := httptest.NewRecorder()
+
+	handler.DeleteProject(w, req)
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, w.Code)

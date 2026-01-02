@@ -45,6 +45,7 @@ func (s *NoteService) CreateNote(ctx context.Context, htmlContent string, date t
 	}, nil
 }
 
+// TODO: Should probably just be a date range
 func (s *NoteService) GetNoteDatesForMonth(ctx context.Context, year int, month time.Month) ([]int, error) {
 	var days []int
 

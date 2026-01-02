@@ -17,4 +17,6 @@ type ProjectStore interface {
 	// GetAll retrieves all projects ordered by creation date (newest first)
 	// If namePrefix is not empty, filters projects by name prefix (case-insensitive)
 	GetAll(ctx context.Context, namePrefix string) ([]Project, error)
+
+	DeleteByID(ctx context.Context, id int) error
 }

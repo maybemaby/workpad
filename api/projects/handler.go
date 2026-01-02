@@ -110,3 +110,21 @@ func (h *ProjectHandler) CreateMultipleProjects(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(projects)
 }
+
+func (h *ProjectHandler) DeleteProject(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid project ID", http.StatusBadRequest)
+		return
+	}
+
+	err = h.store.DeleteByID(r.Context(), id)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

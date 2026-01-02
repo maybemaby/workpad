@@ -151,3 +151,14 @@ func (s *SqliteStore) GetAll(ctx context.Context, namePrefix string) ([]Project,
 
 	return projects, nil
 }
+
+func (s *SqliteStore) DeleteByID(ctx context.Context, id int) error {
+	query := `DELETE FROM projects WHERE id = ?`
+
+	_, err := s.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete project: %w", err)
+	}
+
+	return nil
+}

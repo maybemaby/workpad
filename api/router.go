@@ -121,6 +121,12 @@ func (s *Server) MountRoutesOapi() {
 		option.Tags("Projects"),
 	)
 
+	r.Handle("DELETE /projects/{id}", rootMw.ThenFunc(projectsHandler.DeleteProject)).With(
+		option.Request(new(projects.GetProjectRequest)),
+		option.Response(204, nil),
+		option.Tags("Projects"),
+	)
+
 	// Notes routes
 	noteStore := notes.NewNoteService(s.sqliteDB)
 	notesHandler := notes.NewNoteHandler(noteStore)
