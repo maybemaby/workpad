@@ -3,7 +3,6 @@ package projects
 import "time"
 
 type Project struct {
-	ID        int       `json:"id" required:"true"`
 	Name      string    `json:"name" required:"true"`
 	CreatedAt time.Time `json:"created_at" db:"created_at" required:"true"`
 }

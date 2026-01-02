@@ -15,9 +15,9 @@ import (
 type mockStore struct {
 	createFunc         func(ctx context.Context, name string) (*Project, error)
 	createMultipleFunc func(ctx context.Context, names []string) ([]Project, error)
-	getByIDFunc        func(ctx context.Context, id int) (*Project, error)
+	getByNameFunc      func(ctx context.Context, name string) (*Project, error)
 	getAllFunc         func(ctx context.Context, namePrefix string) ([]Project, error)
-	deleteFunc         func(ctx context.Context, id int) error
+	deleteFunc         func(ctx context.Context, name string) error
 }
 
 func (m *mockStore) Create(ctx context.Context, name string) (*Project, error) {
@@ -34,9 +34,9 @@ func (m *mockStore) CreateMultiple(ctx context.Context, names []string) ([]Proje
 	return nil, nil
 }
 
-func (m *mockStore) GetByID(ctx context.Context, id int) (*Project, error) {
-	if m.getByIDFunc != nil {
-		return m.getByIDFunc(ctx, id)
+func (m *mockStore) GetByName(ctx context.Context, name string) (*Project, error) {
+	if m.getByNameFunc != nil {
+		return m.getByNameFunc(ctx, name)
 	}
 	return nil, nil
 }
@@ -48,9 +48,9 @@ func (m *mockStore) GetAll(ctx context.Context, namePrefix string) ([]Project, e
 	return nil, nil
 }
 
-func (m *mockStore) DeleteByID(ctx context.Context, id int) error {
+func (m *mockStore) DeleteByName(ctx context.Context, name string) error {
 	if m.deleteFunc != nil {
-		return m.deleteFunc(ctx, id)
+		return m.deleteFunc(ctx, name)
 	}
 	return nil
 }
@@ -60,7 +60,6 @@ func TestCreateProject_Success(t *testing.T) {
 	mock := &mockStore{
 		createFunc: func(ctx context.Context, name string) (*Project, error) {
 			return &Project{
-				ID:        1,
 				Name:      name,
 				CreatedAt: time.Now(),
 			}, nil
@@ -82,7 +81,7 @@ func TestCreateProject_Success(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if result.ID != 1 || result.Name != "Test Project" {
+	if result.Name != "Test Project" {
 		t.Errorf("unexpected response body: %+v", result)
 	}
 }
@@ -105,7 +104,6 @@ func TestCreateProject_InvalidBody(t *testing.T) {
 // TestCreateProject_DuplicateName tests creating a project with a duplicate name returns existing project
 func TestCreateProject_DuplicateName(t *testing.T) {
 	existingProject := &Project{
-		ID:        1,
 		Name:      "Duplicate",
 		CreatedAt: time.Now(),
 	}
@@ -132,7 +130,7 @@ func TestCreateProject_DuplicateName(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if result.ID != 1 || result.Name != "Duplicate" {
+	if result.Name != "Duplicate" {
 		t.Errorf("expected existing project to be returned, got: %+v", result)
 	}
 }
@@ -159,9 +157,8 @@ func TestCreateProject_DatabaseError(t *testing.T) {
 // TestGetProject_Success tests successful project retrieval
 func TestGetProject_Success(t *testing.T) {
 	mock := &mockStore{
-		getByIDFunc: func(ctx context.Context, id int) (*Project, error) {
+		getByNameFunc: func(ctx context.Context, name string) (*Project, error) {
 			return &Project{
-				ID:        id,
 				Name:      "Test Project",
 				CreatedAt: time.Now(),
 			}, nil
@@ -187,7 +184,7 @@ func TestGetProject_Success(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	if result.ID != 1 || result.Name != "Test Project" {
+	if result.Name != "Test Project" {
 		t.Errorf("unexpected response body: %+v", result)
 	}
 }
@@ -195,7 +192,7 @@ func TestGetProject_Success(t *testing.T) {
 // TestGetProject_NotFound tests project not found error
 func TestGetProject_NotFound(t *testing.T) {
 	mock := &mockStore{
-		getByIDFunc: func(ctx context.Context, id int) (*Project, error) {
+		getByNameFunc: func(ctx context.Context, name string) (*Project, error) {
 			return nil, errors.New("project not found")
 		},
 	}
@@ -212,27 +209,11 @@ func TestGetProject_NotFound(t *testing.T) {
 	}
 }
 
-// TestGetProject_InvalidID tests invalid project ID
-func TestGetProject_InvalidID(t *testing.T) {
-	mock := &mockStore{}
-	handler := NewHandler(mock)
-
-	req := httptest.NewRequest("GET", "/projects/invalid", nil)
-	req.SetPathValue("id", "invalid")
-	w := httptest.NewRecorder()
-
-	handler.GetProject(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
-	}
-}
-
 // TestListProjects_Success tests successful listing of all projects
 func TestListProjects_Success(t *testing.T) {
 	projects := []Project{
-		{ID: 1, Name: "Project 1", CreatedAt: time.Now()},
-		{ID: 2, Name: "Project 2", CreatedAt: time.Now()},
+		{Name: "Project 1", CreatedAt: time.Now()},
+		{Name: "Project 2", CreatedAt: time.Now()},
 	}
 
 	mock := &mockStore{
@@ -311,9 +292,9 @@ func TestListProjects_DatabaseError(t *testing.T) {
 // TestCreateMultipleProjects_Success tests successful batch creation
 func TestCreateMultipleProjects_Success(t *testing.T) {
 	createdProjects := []Project{
-		{ID: 1, Name: "Project 1", CreatedAt: time.Now()},
-		{ID: 2, Name: "Project 2", CreatedAt: time.Now()},
-		{ID: 3, Name: "Project 3", CreatedAt: time.Now()},
+		{Name: "Project 1", CreatedAt: time.Now()},
+		{Name: "Project 2", CreatedAt: time.Now()},
+		{Name: "Project 3", CreatedAt: time.Now()},
 	}
 
 	mock := &mockStore{
@@ -377,7 +358,7 @@ func TestCreateMultipleProjects_InvalidBody(t *testing.T) {
 // TestCreateMultipleProjects_WithDuplicates tests batch creation with duplicate names returns all projects
 func TestCreateMultipleProjects_WithDuplicates(t *testing.T) {
 	projects := []Project{
-		{ID: 1, Name: "Project 1", CreatedAt: time.Now()},
+		{Name: "Project 1", CreatedAt: time.Now()},
 	}
 
 	mock := &mockStore{
@@ -431,14 +412,14 @@ func TestCreateMultipleProjects_DatabaseError(t *testing.T) {
 // TestDeleteProject_Success tests successful project deletion
 func TestDeleteProject_Success(t *testing.T) {
 	mock := &mockStore{
-		deleteFunc: func(ctx context.Context, id int) error {
+		deleteFunc: func(ctx context.Context, name string) error {
 			return nil
 		},
 	}
 
 	handler := NewHandler(mock)
 	req := httptest.NewRequest("DELETE", "/projects/1", nil)
-	req.SetPathValue("id", "1")
+	req.SetPathValue("name", "1")
 	w := httptest.NewRecorder()
 
 	handler.DeleteProject(w, req)
@@ -448,35 +429,18 @@ func TestDeleteProject_Success(t *testing.T) {
 	}
 }
 
-// TestDeleteProject_InvalidID tests deletion with invalid project ID
-func TestDeleteProject_InvalidID(t *testing.T) {
-	mock := &mockStore{}
-	handler := NewHandler(mock)
-
-	req := httptest.NewRequest("DELETE", "/projects/invalid", nil)
-	req.SetPathValue("id", "invalid")
-
-	w := httptest.NewRecorder()
-
-	handler.DeleteProject(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("expected status %d, got %d", http.StatusBadRequest, w.Code)
-	}
-}
-
 // TestDeleteProject_DatabaseError tests database error handling during deletion
 func TestDeleteProject_DatabaseError(t *testing.T) {
 	mock := &mockStore{
-		deleteFunc: func(ctx context.Context, id int) error {
+		deleteFunc: func(ctx context.Context, name string) error {
 			return errors.New("database error")
 		},
 	}
 
 	handler := NewHandler(mock)
 	req := httptest.NewRequest("DELETE", "/projects/1", nil)
-	req.SetPathValue("id", "1")
-	
+	req.SetPathValue("name", "name")
+
 	w := httptest.NewRecorder()
 
 	handler.DeleteProject(w, req)

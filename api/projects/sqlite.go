@@ -40,9 +40,9 @@ func (s *SqliteStore) Create(ctx context.Context, name string) (*Project, error)
 	}
 
 	// Retrieve the project (existing or newly created) by name
-	getQuery := `SELECT id, name, created_at FROM projects WHERE name = ?`
+	getQuery := `SELECT name, created_at FROM projects WHERE name = ?`
 	var project Project
-	err = s.db.QueryRowContext(ctx, getQuery, cleanedName).Scan(&project.ID, &project.Name, &project.CreatedAt)
+	err = s.db.QueryRowContext(ctx, getQuery, cleanedName).Scan(&project.Name, &project.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve project: %w", err)
 	}
@@ -89,9 +89,9 @@ func (s *SqliteStore) CreateMultiple(ctx context.Context, names []string) ([]Pro
 		}
 
 		// Retrieve the project (existing or newly created) by name
-		getQuery := `SELECT id, name, created_at FROM projects WHERE name = ?`
+		getQuery := `SELECT name, created_at FROM projects WHERE name = ?`
 		var project Project
-		err = tx.QueryRowContext(ctx, getQuery, name).Scan(&project.ID, &project.Name, &project.CreatedAt)
+		err = tx.QueryRowContext(ctx, getQuery, name).Scan(&project.Name, &project.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to retrieve project: %w", err)
 		}
@@ -107,12 +107,12 @@ func (s *SqliteStore) CreateMultiple(ctx context.Context, names []string) ([]Pro
 	return projects, nil
 }
 
-// GetByID retrieves a project by its ID
-func (s *SqliteStore) GetByID(ctx context.Context, id int) (*Project, error) {
-	query := `SELECT id, name, created_at FROM projects WHERE id = ?`
+// GetByName retrieves a project by its name
+func (s *SqliteStore) GetByName(ctx context.Context, name string) (*Project, error) {
+	query := `SELECT name, created_at FROM projects WHERE name = ?`
 
 	var project Project
-	err := s.db.QueryRowContext(ctx, query, id).Scan(&project.ID, &project.Name, &project.CreatedAt)
+	err := s.db.QueryRowContext(ctx, query, name).Scan(&project.Name, &project.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("project not found")
@@ -131,11 +131,11 @@ func (s *SqliteStore) GetAll(ctx context.Context, namePrefix string) ([]Project,
 
 	if namePrefix != "" {
 		// Filter by name prefix (case-insensitive)
-		query = `SELECT id, name, created_at FROM projects WHERE LOWER(name) LIKE LOWER(?) ORDER BY created_at DESC`
+		query = `SELECT name, created_at FROM projects WHERE LOWER(name) LIKE LOWER(?) ORDER BY created_at DESC`
 		args = []any{namePrefix + "%"}
 	} else {
 		// Get all projects
-		query = `SELECT id, name, created_at FROM projects ORDER BY created_at DESC`
+		query = `SELECT name, created_at FROM projects ORDER BY created_at DESC`
 	}
 
 	var projects []Project
@@ -152,10 +152,10 @@ func (s *SqliteStore) GetAll(ctx context.Context, namePrefix string) ([]Project,
 	return projects, nil
 }
 
-func (s *SqliteStore) DeleteByID(ctx context.Context, id int) error {
-	query := `DELETE FROM projects WHERE id = ?`
+func (s *SqliteStore) DeleteByName(ctx context.Context, name string) error {
+	query := `DELETE FROM projects WHERE name = ?`
 
-	_, err := s.db.ExecContext(ctx, query, id)
+	_, err := s.db.ExecContext(ctx, query, name)
 	if err != nil {
 		return fmt.Errorf("failed to delete project: %w", err)
 	}

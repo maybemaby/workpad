@@ -1,8 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE projects (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
+CREATE TABLE projects (    
+    name TEXT PRIMARY KEY,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

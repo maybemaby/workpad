@@ -11,12 +11,12 @@ type ProjectStore interface {
 	// Returns a slice of created projects or an error if any insertion fails
 	CreateMultiple(ctx context.Context, names []string) ([]Project, error)
 
-	// GetByID retrieves a project by its ID
-	GetByID(ctx context.Context, id int) (*Project, error)
+	// GetByName retrieves a project by its name
+	GetByName(ctx context.Context, name string) (*Project, error)
 
 	// GetAll retrieves all projects ordered by creation date (newest first)
 	// If namePrefix is not empty, filters projects by name prefix (case-insensitive)
 	GetAll(ctx context.Context, namePrefix string) ([]Project, error)
 
-	DeleteByID(ctx context.Context, id int) error
+	DeleteByName(ctx context.Context, name string) error
 }

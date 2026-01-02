@@ -3,7 +3,6 @@ package projects
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/maybemaby/workpad/api/utils"
 )
@@ -49,14 +48,9 @@ func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 
 // GetProject handles GET /projects/{id}
 func (h *ProjectHandler) GetProject(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid project ID", http.StatusBadRequest)
-		return
-	}
+	name := r.PathValue("name")
 
-	project, err := h.store.GetByID(r.Context(), id)
+	project, err := h.store.GetByName(r.Context(), name)
 	if err != nil {
 		if err.Error() == "project not found" {
 			http.Error(w, "Project not found", http.StatusNotFound)
@@ -112,14 +106,9 @@ func (h *ProjectHandler) CreateMultipleProjects(w http.ResponseWriter, r *http.R
 }
 
 func (h *ProjectHandler) DeleteProject(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid project ID", http.StatusBadRequest)
-		return
-	}
+	name := r.PathValue("name")
 
-	err = h.store.DeleteByID(r.Context(), id)
+	err := h.store.DeleteByName(r.Context(), name)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
