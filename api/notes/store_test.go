@@ -1,0 +1,109 @@
+package notes
+
+import (
+	"context"
+	"database/sql"
+	"testing"
+	"time"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/maybemaby/workpad/api/utils"
+	"github.com/stretchr/testify/suite"
+	_ "modernc.org/sqlite"
+)
+
+func mustParseTime(layout, value string) time.Time {
+	t, err := time.Parse(layout, value)
+	if err != nil {
+		panic(err)
+	}
+
+	return t
+}
+
+func seedNotes(ctx context.Context, db *sqlx.DB) []Note {
+	notes := []Note{
+		{HTMLContent: "<p>Note for 2026-01-01</p>", Date: mustParseTime(time.DateOnly, "2026-01-01")},
+		{HTMLContent: "<p>Note for 2026-01-02</p>", Date: mustParseTime(time.DateOnly, "2026-01-02")},
+		{HTMLContent: "<p>Note for 2026-01-03</p>", Date: mustParseTime(time.DateOnly, "2026-01-03")},
+	}
+
+	tx := db.MustBegin()
+
+	defer tx.Commit()
+
+	for i := range notes {
+		row := tx.QueryRowContext(ctx, "INSERT INTO notes (html_content, note_date) VALUES (?, ?) RETURNING id", notes[i].HTMLContent, notes[i].Date.Format("2006-01-02"))
+
+		if err := row.Scan(&notes[i].Id); err != nil {
+			panic(err)
+		}
+	}
+
+	return notes
+}
+
+type NoteStoreSuite struct {
+	suite.Suite
+	db  *sql.DB
+	dbx *sqlx.DB
+}
+
+func (s *NoteStoreSuite) SetupTest() {
+	s.db, _ = sql.Open("sqlite", ":memory:")
+	s.dbx = sqlx.NewDb(s.db, "sqlite")
+
+	err := utils.SetupSqliteDb(s.db)
+
+	if err != nil {
+		panic(err)
+	}
+
+	seedNotes(s.T().Context(), s.dbx)
+}
+
+func (s *NoteStoreSuite) TearDownTest() {
+	s.db.Close()
+}
+
+func (s *NoteStoreSuite) TestGetNoteByDate_Found() {
+	store := NewNoteService(s.dbx)
+
+	note, err := store.GetNoteByDate(s.T().Context(), mustParseTime(time.DateOnly, "2026-01-02"))
+
+	s.NoError(err)
+	s.Equal("<p>Note for 2026-01-02</p>", note.HTMLContent)
+	s.Equal("2026-01-02", note.Date.Format(time.DateOnly))
+}
+
+func (s *NoteStoreSuite) TestGetNoteByDate_NotFound() {
+	store := NewNoteService(s.dbx)
+
+	_, err := store.GetNoteByDate(s.T().Context(), mustParseTime(time.DateOnly, "2026-12-31"))
+
+	s.ErrorIs(err, sql.ErrNoRows)
+}
+
+func (s *NoteStoreSuite) TestCreateNote_NewNote() {
+	store := NewNoteService(s.dbx)
+
+	note, err := store.CreateNote(s.T().Context(), "<p>New Note</p>", mustParseTime(time.DateOnly, "2026-04-01"))
+
+	s.NoError(err)
+	s.Equal("<p>New Note</p>", note.HTMLContent)
+	s.Equal("2026-04-01", note.Date.Format(time.DateOnly))
+}
+
+func (s *NoteStoreSuite) TestCreateNote_UpdateExistingNote() {
+	store := NewNoteService(s.dbx)
+
+	note, err := store.CreateNote(s.T().Context(), "<p>Updated Note for 2026-01-02</p>", mustParseTime(time.DateOnly, "2026-01-02"))
+
+	s.NoError(err)
+	s.Equal("<p>Updated Note for 2026-01-02</p>", note.HTMLContent)
+	s.Equal("2026-01-02", note.Date.Format(time.DateOnly))
+}
+
+func TestNoteStoreSuite(t *testing.T) {
+	suite.Run(t, new(NoteStoreSuite))
+}

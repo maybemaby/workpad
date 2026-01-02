@@ -8,7 +8,7 @@ import (
 	"github.com/pressly/goose/v3"
 )
 
-//go:embed *.sql
+//go:embed sqlite/*.sql
 var migrations embed.FS
 
 func RunMigrations(ctx context.Context, db *sql.DB) error {
@@ -21,5 +21,5 @@ func RunMigrations(ctx context.Context, db *sql.DB) error {
 		return err
 	}
 
-	return goose.UpContext(ctx, db, ".")
+	return goose.UpContext(ctx, db, "sqlite")
 }
