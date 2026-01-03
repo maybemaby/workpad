@@ -131,13 +131,21 @@ func (s *Server) MountRoutesOapi() {
 		option.Tags("Notes"),
 	)
 
-	// For CORS preflight requests
-	r.Handle("/", rootMw.ThenFunc(
+	apiRoute.Handle("/", rootMw.ThenFunc(
 		func(w http.ResponseWriter, r *http.Request) {
+			slog.Default().Info("Handling CORS preflight")
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusOK)
 				return
 			}
+
+			http.NotFound(w, r)
+		},
+	))
+
+	// For CORS preflight requests
+	r.Handle("/", rootMw.ThenFunc(
+		func(w http.ResponseWriter, r *http.Request) {
 
 			if r.Method == http.MethodGet {
 				HandleSPA(frontend.Assets).ServeHTTP(w, r)

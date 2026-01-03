@@ -22,6 +22,9 @@
   --neutral-bg: hsl(var(--neutral));
   --neutral-fg: hsl(0, 0, 25%);
 
+  --surface: hsl(0, 4%, 95%);
+  --surface-foreground: hsl(0, 0%, 15%);
+
   --border: #dcdcdc;
 
   --header-height: 60px;
@@ -244,12 +247,14 @@ div[contenteditable='true'].tiptap {
 }
 
 .mention-tooltip {
-  background-color: white;
+  background-color: var(--surface);
+  color: var(--surface-foreground);
   min-width: 10ch;
   min-height: 2ch;
   border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  border-radius: 0.25rem;
 
   .highlighted {
     background-color: hsl(var(--neutral) / 0.3);
@@ -259,5 +264,7 @@ div[contenteditable='true'].tiptap {
     all: unset;
     padding: 0.25rem 0.5rem;
     cursor: pointer;
+    font-size: 1.1rem;
+    font-family: var(--font-tiptap);
   }
 }

@@ -59,10 +59,4 @@
 		gap: 1rem;
 		margin-left: 3rem;
 	}
-
-	.item {
-		margin-bottom: 1.5rem;
-		display: flex;
-		gap: 1rem;
-	}
 </style>
