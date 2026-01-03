@@ -3,7 +3,7 @@ version: 2
 before:
   hooks:
     - go mod tidy
-    - cmd: bash -c 'cd frontend && pnpm install --frozen-lockfile && pnpm build'
+    - bash -c 'cd frontend && pnpm install --frozen-lockfile && pnpm build'
 
 builds:
   - id: workpad
@@ -22,11 +22,11 @@ builds:
         goarch: arm64
 
 archives:
-  - format: binary
+  - formats: binary
     name_template: '{{ .Binary }}_{{ .Os }}_{{ .Arch }}'
 
 changelog:
-  use: conventional
+  use: git
   groups:
     - title: Features
       regexp: '^feat(\(.+\))?!?:'
