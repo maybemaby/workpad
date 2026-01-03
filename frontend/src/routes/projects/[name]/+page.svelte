@@ -6,7 +6,7 @@
 
 	let name = $derived(params.name);
 
-	const query = getExcerptsQuery(name);
+	const query = getExcerptsQuery(() => name);
 
 	const projectName = $derived.by(() => {
 		return query.data?.[0]?.project_name ?? name;

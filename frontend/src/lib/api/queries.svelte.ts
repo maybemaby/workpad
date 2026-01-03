@@ -3,14 +3,16 @@ import { apiClient } from './client';
 import type { components } from './spec';
 import type { Getter } from 'runed';
 
-export const createGetProjectsQuery = (query?: string) => {
+export const createGetProjectsQuery = (query?: Getter<string>, options?: Getter<{ enabled?: boolean }>) => {
+
+
 	return createQuery(() => ({
-		queryKey: ['projects', query],
+		queryKey: ['projects', query?.()],
 		queryFn: async () => {
 			const res = await apiClient.GET('/api/projects', {
 				params: {
 					query: {
-						prefix: query
+						prefix: query?.()
 					}
 				}
 			});
@@ -19,7 +21,8 @@ export const createGetProjectsQuery = (query?: string) => {
 			}
 
 			return res.data;
-		}
+		},
+		enabled: options?.()?.enabled ?? true
 	}));
 };
 
@@ -112,14 +115,14 @@ export const createUpdateExcerptMutation = () => {
 	}));
 };
 
-export const getExcerptsQuery = (name: string) => {
+export const getExcerptsQuery = (name: Getter<string>) => {
 	return createQuery(() => ({
 		queryKey: ['note-excerpts', name],
 		queryFn: async () => {
 			const res = await apiClient.GET('/api/notes/excerpts/{project}', {
 				params: {
 					path: {
-						project: name
+						project: name()
 					}
 				}
 			});

@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { Dialog, Command } from 'bits-ui';
 	import DialogContent from './dialog/content.svelte';
-	import { PressedKeys } from 'runed';
+	import { Debounced, PressedKeys } from 'runed';
+	import { createGetProjectsQuery } from '$lib/api/queries.svelte';
 
+	let searchTerm = $state('');
+	let debouncedSearchTerm = new Debounced(() => searchTerm, 300);
 	const keys = new PressedKeys();
 
 	let dialogOpen = $state(false);
@@ -11,11 +14,20 @@
 		dialogOpen = !dialogOpen;
 	});
 
-	const items = [
-		{ name: 'Project A', href: '/projects/project-a' },
-		{ name: 'Project B', href: '/projects/project-b' },
-		{ name: 'Project C', href: '/projects/project-c' }
-	];
+	let query = createGetProjectsQuery(
+		() => debouncedSearchTerm.current,
+		() => ({
+			enabled: dialogOpen
+		})
+	);
+
+	let items = $derived.by(() => {
+		const projects = query.data ?? [];
+		return projects.map((project) => ({
+			name: project.name,
+			href: `/projects/${project.name}`
+		}));
+	});
 </script>
 
 <Dialog.Root bind:open={dialogOpen}>
@@ -39,15 +51,20 @@
 	<DialogContent>
 		<Dialog.Title class="sr-only">Search Projects</Dialog.Title>
 		<Dialog.Description class="sr-only">Search projects by name.</Dialog.Description>
-		<Command.Root class="search__root">
-			<Command.Input class="search__input" placeholder="Search projects..."></Command.Input>
+		<Command.Root class="search__root" shouldFilter={false}>
+			<Command.Input class="search__input" bind:value={searchTerm} placeholder="Search projects..."
+			></Command.Input>
 			<Command.List class="search__list">
 				<Command.Viewport>
 					<Command.Group>
 						<Command.GroupHeading>Projects</Command.GroupHeading>
 						<Command.GroupItems>
 							{#each items as item (item.href)}
-								<Command.LinkItem href={item.href} onSelect={() => (dialogOpen = false)}>
+								<Command.LinkItem
+									value={item.name}
+									href={item.href}
+									onSelect={() => (dialogOpen = false)}
+								>
 									{item.name}
 								</Command.LinkItem>
 							{/each}
