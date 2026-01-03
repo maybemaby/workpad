@@ -3,6 +3,7 @@ package notes
 import (
 	"database/sql"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -124,4 +125,22 @@ func (h *NoteHandler) UpdateNoteExcerpts(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type GetExcerptsForProjectRequest struct {
+	Project string `path:"project" example:"Project A" required:"true"`
+}
+
+func (h *NoteHandler) GetExcerptsForProject(w http.ResponseWriter, r *http.Request) {
+	projectName := r.PathValue("project")
+	slog.Debug("Fetching excerpts for project", "project", projectName)
+	excerpts, err := h.noteStore.GetExcerptsForProject(r.Context(), projectName)
+
+	if err != nil {
+		slog.Debug("Err", "err", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	utils.WriteJSON(w, r, excerpts)
 }

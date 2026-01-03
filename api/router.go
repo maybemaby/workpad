@@ -108,7 +108,7 @@ func (s *Server) MountRoutesOapi() {
 		option.Tags("Projects"),
 	)
 
-	r.Handle("GET /projects/{id}", rootMw.ThenFunc(projectsHandler.GetProject)).With(
+	r.Handle("GET /projects/{name}", rootMw.ThenFunc(projectsHandler.GetProject)).With(
 		option.Request(new(projects.GetProjectRequest)),
 		option.Response(200, new(projects.Project)),
 		option.Response(404, "Not Found"),
@@ -121,7 +121,7 @@ func (s *Server) MountRoutesOapi() {
 		option.Tags("Projects"),
 	)
 
-	r.Handle("DELETE /projects/{id}", rootMw.ThenFunc(projectsHandler.DeleteProject)).With(
+	r.Handle("DELETE /projects/{name}", rootMw.ThenFunc(projectsHandler.DeleteProject)).With(
 		option.Request(new(projects.GetProjectRequest)),
 		option.Response(204, nil),
 		option.Tags("Projects"),
@@ -153,6 +153,12 @@ func (s *Server) MountRoutesOapi() {
 	r.Handle("PUT /notes/excerpts", rootMw.ThenFunc(notesHandler.UpdateNoteExcerpts)).With(
 		option.Request(new(notes.UpdateNoteExcerptRequest)),
 		option.Response(204, nil),
+		option.Tags("Notes"),
+	)
+
+	r.Handle("GET /notes/excerpts/{project}", rootMw.ThenFunc(notesHandler.GetExcerptsForProject)).With(
+		option.Request(new(notes.GetExcerptsForProjectRequest)),
+		option.Response(200, new([]notes.NoteExcerpt)),
 		option.Tags("Notes"),
 	)
 

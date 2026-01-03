@@ -12,6 +12,7 @@ type NoteStore interface {
 	CreateNote(ctx context.Context, htmlContent string, date time.Time) (Note, error)
 	GetNoteDatesForMonth(ctx context.Context, year int, month time.Month) ([]int, error)
 	UpdateExcerptsForDate(ctx context.Context, date time.Time, excerpts []ExcerptNode) error
+	GetExcerptsForProject(ctx context.Context, projectName string) ([]NoteExcerpt, error)
 }
 
 type NoteService struct {
@@ -109,4 +110,12 @@ func (s *NoteService) UpdateExcerptsForDate(ctx context.Context, date time.Time,
 	}
 
 	return tx.Commit()
+}
+
+func (s *NoteService) GetExcerptsForProject(ctx context.Context, projectName string) ([]NoteExcerpt, error) {
+	var excerpts []NoteExcerpt
+
+	err := s.db.SelectContext(ctx, &excerpts, `SELECT id, project_name, note_id, excerpt, note_date FROM project_excerpts WHERE LOWER(project_name) = LOWER(?) ORDER BY note_date DESC`, projectName)
+
+	return excerpts, err
 }

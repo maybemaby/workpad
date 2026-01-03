@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -64,6 +65,10 @@ func main() {
 
 		time.Local = location
 	}
+
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})))
 
 	// Otel
 	otelShutdown, err := api.SetupOtel(ctx, api.OtelConfig{

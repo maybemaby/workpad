@@ -18,7 +18,7 @@ func NewHandler(store ProjectStore) *ProjectHandler {
 }
 
 type GetProjectRequest struct {
-	ID int `path:"id" example:"1"`
+	Name string `json:"name" path:"name" example:"Project A" required:"true"`
 }
 
 type ListProjectsRequest struct {
@@ -46,7 +46,7 @@ func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(project)
 }
 
-// GetProject handles GET /projects/{id}
+// GetProject handles GET /projects/{name}
 func (h *ProjectHandler) GetProject(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 
