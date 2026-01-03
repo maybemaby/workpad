@@ -28,6 +28,10 @@ tasks:
 
   seed:
     cmd: go run ./cmd/seed/main.go app.db
+  
+  prepare-ci:
+    cmds:
+      - (cd frontend && pnpm install --frozen-lockfile)
 
   build-fe:
     cmds:
@@ -40,4 +44,10 @@ tasks:
   build:
     cmd: go build -o workpad ./cmd/server/main.go
     deps:
+      - build-fe
+
+  build-ci:
+    cmd: go build -o workpad ./cmd/server/main.go
+    deps:
+      - prepare-ci
       - build-fe

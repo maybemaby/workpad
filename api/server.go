@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/maybemaby/workpad/migrations"
 )
 
 type Server struct {
@@ -47,6 +48,12 @@ func NewServer(isProd bool) (*Server, error) {
 func (s *Server) Start(ctx context.Context) error {
 
 	s.MountRoutesOapi()
+
+	err := migrations.RunMigrations(ctx, s.db)
+	
+	if err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
 
 	s.logger.Info("Server started at http://localhost:" + s.port)
 	s.logger.Info(fmt.Sprintf("Server is running in production mode: %t", s.prod))
