@@ -1,0 +1,44 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - cmd: bash -c 'cd frontend && pnpm install --frozen-lockfile && pnpm build'
+
+builds:
+  - id: workpad
+    main: ./cmd/server/main.go
+    binary: workpad
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - windows
+    goarch:
+      - arm64
+      - amd64
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - format: binary
+    name_template: '{{ .Binary }}_{{ .Os }}_{{ .Arch }}'
+
+changelog:
+  use: conventional
+  groups:
+    - title: Features
+      regexp: '^feat(\(.+\))?!?:'
+      order: 0
+    - title: 'Bug fixes'
+      regexp: '^fix(\(.+\))?!?:'
+      order: 1
+    - title: 'Performance improvements'
+      regexp: '^perf(\(.+\))?!?:'
+      order: 2
+    - title: Other work
+      order: 999
+
+release:
+  prerelease: auto
