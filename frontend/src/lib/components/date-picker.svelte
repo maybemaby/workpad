@@ -64,36 +64,8 @@
 			>
 				{#snippet children({ months, weekdays })}
 					<Calendar.Header class="calendar-header">
-						<Calendar.PrevButton>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="24"
-								height="24"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								class="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"></path></svg
-							>
-						</Calendar.PrevButton>
-						<Calendar.Heading />
-						<Calendar.NextButton>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="24"
-								height="24"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								class="lucide lucide-chevron-left calendar-next"
-								><path d="m15 18-6-6 6-6"></path></svg
-							>
-						</Calendar.NextButton>
+						<Calendar.MonthSelect aria-label="Select month" />
+						<Calendar.YearSelect aria-label="Select year" />
 					</Calendar.Header>
 					<div class="date-picker-grid__container">
 						{#each months as month, i (i)}
@@ -202,6 +174,13 @@
 				cursor: pointer;
 				font-size: 1.25rem;
 			}
+		}
+
+		.calendar-header [data-calendar-month-select],
+		.calendar-header [data-calendar-year-select] {
+			background-color: transparent;
+			border: none;
+			font-size: 1.1rem;
 		}
 
 		.date-picker-grid__container {
