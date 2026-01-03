@@ -1,3 +1,4 @@
+#:schema https://json.schemastore.org/any.json
 root = "."
 testdata_dir = "testdata"
 tmp_dir = "tmp"
@@ -17,6 +18,7 @@ exclude_dir = [
     "vector",
     "api-schema",
     "frontend",
+    "cmd/seed",
 ]
 exclude_file = [
     ".dockerignore",

@@ -33,3 +33,6 @@ tasks:
 
   migrate-add:
     cmd: ./scripts/migrate-add.sh
+
+  seed:
+    cmd: go run ./cmd/seed/main.go app.db
