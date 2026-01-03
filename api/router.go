@@ -28,8 +28,6 @@ func (s *Server) MountRoutesOapi() {
 		pool:       s.pool,
 	}
 
-	googleHandler := NewGoogleHandler(s.pool, s.jwtManager)
-
 	rootMw := RootMiddleware(s.logger, MiddlewareConfig{
 		CorsOrigin: "http://localhost:5173",
 	})
@@ -88,9 +86,6 @@ func (s *Server) MountRoutesOapi() {
 			200: new(LoginJwtResponse),
 		}),
 	)
-
-	authRoute.Handle("GET /google", rootMw.ThenFunc(googleHandler.HandleAuth))
-	authRoute.Handle("GET /google/callback", rootMw.ThenFunc(googleHandler.HandleCallback))
 
 	// Projects routes
 	projectsStore := projects.NewSqliteStore(s.sqliteDB)
