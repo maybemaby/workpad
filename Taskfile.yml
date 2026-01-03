@@ -3,14 +3,6 @@ version: "3"
 dotenv:
   - .env
 tasks:
-  build-fe:
-    cmds:
-      - (cd frontend && pnpm build)
-    generates:
-      - frontend/dist/**/*
-    sources:
-      - frontend/src/**/*
-
   dev:
     cmd: air
     deps:
@@ -36,3 +28,16 @@ tasks:
 
   seed:
     cmd: go run ./cmd/seed/main.go app.db
+
+  build-fe:
+    cmds:
+      - (cd frontend && pnpm build)
+    generates:
+      - frontend/build/**/*
+    sources:
+      - frontend/src/**/*
+
+  build:
+    cmd: go build -o workpad ./cmd/server/main.go
+    deps:
+      - build-fe

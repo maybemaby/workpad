@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/maybemaby/workpad/api/auth"
 	"github.com/maybemaby/workpad/api/notes"
 	"github.com/maybemaby/workpad/api/projects"
 	"github.com/maybemaby/workpad/frontend"
@@ -25,16 +24,9 @@ func (s *Server) MountRoutesOapi() {
 
 	mux := http.NewServeMux()
 
-	authHandler := &AuthHandler{
-		jwtManager: s.jwtManager,
-		pool:       s.pool,
-	}
-
 	rootMw := RootMiddleware(s.logger, MiddlewareConfig{
 		CorsOrigin: "http://localhost:5173",
 	})
-
-	authMw := rootMw.Append(auth.RequireAccessToken(s.jwtManager))
 
 	r := httpopenapi.NewGenerator(mux,
 		option.WithTitle("workpad"),
@@ -68,28 +60,6 @@ func (s *Server) MountRoutesOapi() {
 	}
 
 	apiRoute := r.Group("/api")
-
-	authRoute := r.Group("/auth").With(option.GroupTags("auth"))
-
-	authRoute.Handle("GET /me", authMw.ThenFunc(authHandler.GetAuthMe)).With(
-		option.Response(200, new(MeResponse)),
-		option.Response(401, "Unauthorized"),
-	)
-
-	authRoute.Handle("POST /signup", rootMw.ThenFunc(authHandler.SignupJWT)).With(
-		option.Request(new(PassSignupBody)),
-		ResponsesWithDefault(map[int]any{
-			200: new(LoginJwtResponse),
-		}),
-	)
-
-	authRoute.Handle("POST /login", rootMw.ThenFunc(authHandler.LoginJWT)).With(
-		option.Request(new(PassLoginBody)),
-		Responses(map[int]any{
-			401: new(AuthErrorResponse),
-			200: new(LoginJwtResponse),
-		}),
-	)
 
 	// Projects routes
 	projectsStore := projects.NewSqliteStore(s.sqliteDB)
@@ -230,18 +200,11 @@ func HandleSPA(filesys fs.FS) http.Handler {
 		panic(err)
 	}
 
-	// fs.WalkDir(sub, ".", func(path string, d fs.DirEntry, err error) error {
-	// 	slog.Default().Debug("Embedded SPA file", "path", path, "error", err)
-	// 	return nil
-	// })
-
 	fileServer := http.FileServer(http.FS(sub))
 	prefix := "build"
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-
-		slog.Default().Debug("SPA request", "path", path)
 
 		file, err := filesys.Open(prefix + path)
 

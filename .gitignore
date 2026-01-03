@@ -1,5 +1,4 @@
 node_modules
-server
 bin
 tmp
 .env
@@ -7,3 +6,4 @@ tmp
 *.db
 dist
 .task
+workpad
