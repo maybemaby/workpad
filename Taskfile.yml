@@ -43,11 +43,11 @@ tasks:
 
   build:
     cmd: go build -o workpad ./cmd/server/main.go
+    env:
+      CGO_ENABLED: 0
     deps:
       - build-fe
 
   build-ci:
     cmd: go build -o workpad ./cmd/server/main.go
-    deps:
-      - prepare-ci
-      - build-fe
+    deps: [prepare-ci, build-fe]

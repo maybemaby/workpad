@@ -71,21 +71,24 @@ func main() {
 	})))
 
 	// Otel
-	otelShutdown, err := api.SetupOtel(ctx, api.OtelConfig{
-		TraceExporter:   api.OtlpGrpcExporter,
-		MetricsExporter: api.OtlpGrpcExporter,
-		TraceEnabled:    true,
-		MetricsEnabled:  true,
-		LoggerEnabled:   false,
-	})
 
-	if err != nil {
-		log.Fatalf("Error setting up otel: %v", err)
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
+		otelShutdown, err := api.SetupOtel(ctx, api.OtelConfig{
+			TraceExporter:   api.OtlpGrpcExporter,
+			MetricsExporter: api.OtlpGrpcExporter,
+			TraceEnabled:    true,
+			MetricsEnabled:  true,
+			LoggerEnabled:   false,
+		})
+
+		if err != nil {
+			log.Fatalf("Error setting up otel: %v", err)
+		}
+
+		defer func() {
+			err = errors.Join(err, otelShutdown(context.Background()))
+		}()
 	}
-
-	defer func() {
-		err = errors.Join(err, otelShutdown(context.Background()))
-	}()
 
 	// Server
 	appEnv := os.Getenv("APP_ENV")

@@ -1,6 +1,11 @@
 # workpad
 
-## Development
+## Setup
+
+```bash
+task build-ci --concurrency 1
+./
+```
 
 ### Migrations
 
