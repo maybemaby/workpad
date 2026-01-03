@@ -7,7 +7,7 @@ export const createGetProjectsQuery = (query?: string) => {
 	return createQuery(() => ({
 		queryKey: ['projects', query],
 		queryFn: async () => {
-			const res = await apiClient.GET('/projects', {
+			const res = await apiClient.GET('/api/projects', {
 				params: {
 					query: {
 						prefix: query
@@ -26,7 +26,7 @@ export const createGetProjectsQuery = (query?: string) => {
 export const createProjectsMutation = () => {
 	return createMutation(() => ({
 		mutationFn: async (data: components['schemas']['ProjectsCreateMultipleProjectsRequest']) => {
-			return apiClient.POST('/projects/batch', {
+			return apiClient.POST('/api/projects/batch', {
 				body: data
 			});
 		}
@@ -36,7 +36,7 @@ export const createProjectsMutation = () => {
 export const createAddNoteMutation = () => {
 	return createMutation(() => ({
 		mutationFn: async (data: components['schemas']['NotesCreateNoteRequest']) => {
-			return apiClient.POST('/notes', {
+			return apiClient.POST('/api/notes', {
 				body: data
 			});
 		}
@@ -47,7 +47,7 @@ export const getNoteByDateQuery = (date: string) => {
 	return createQuery(() => ({
 		queryKey: ['note-by-date', date],
 		queryFn: async () => {
-			const res = await apiClient.GET('/notes/by-date', {
+			const res = await apiClient.GET('/api/notes/by-date', {
 				params: {
 					query: {
 						date
@@ -77,7 +77,7 @@ export const getMonthNotes = (props: Getter<GetMonthNotesParams>) => {
 	return createQuery(() => ({
 		queryKey: ['month-notes', props().year, props().month],
 		queryFn: async () => {
-			const res = await apiClient.GET('/notes/for-month', {
+			const res = await apiClient.GET('/api/notes/for-month', {
 				params: {
 					query: {
 						year: props().year,
@@ -99,7 +99,7 @@ export const getMonthNotes = (props: Getter<GetMonthNotesParams>) => {
 export const createUpdateExcerptMutation = () => {
 	return createMutation(() => ({
 		mutationFn: async (data: components['schemas']['NotesUpdateNoteExcerptRequest']) => {
-			const res = await apiClient.PUT('/notes/excerpts', {
+			const res = await apiClient.PUT('/api/notes/excerpts', {
 				body: data
 			});
 
@@ -116,7 +116,7 @@ export const getExcerptsQuery = (name: string) => {
 	return createQuery(() => ({
 		queryKey: ['note-excerpts', name],
 		queryFn: async () => {
-			const res = await apiClient.GET('/notes/excerpts/{project}', {
+			const res = await apiClient.GET('/api/notes/excerpts/{project}', {
 				params: {
 					path: {
 						project: name

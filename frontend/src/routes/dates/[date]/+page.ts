@@ -23,7 +23,7 @@ export const load: PageLoad = async (event) => {
 		redirect(307, `/`);
 	}
 
-	const noteRes = await apiClient.GET('/notes/by-date', {
+	const noteRes = await apiClient.GET('/api/notes/by-date', {
 		params: {
 			query: {
 				date: formattedDate

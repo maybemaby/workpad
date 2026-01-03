@@ -88,7 +88,7 @@ const projectCache: Map<string, string[]> = new Map();
 
 // Debounced API call to fetch projects and update cache
 const debouncedProjectQuery = debounce(async (query: string) => {
-	const res = await apiClient.GET('/projects', {
+	const res = await apiClient.GET('/api/projects', {
 		params: {
 			query: {
 				prefix: query
@@ -121,7 +121,7 @@ export const ProjectTag = Mention.configure({
 			}
 
 			const options = await apiClient
-				.GET('/projects', {
+				.GET('/api/projects', {
 					params: {
 						query: {
 							prefix: query

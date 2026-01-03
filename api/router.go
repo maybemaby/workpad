@@ -3,12 +3,14 @@ package api
 import (
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"os"
 
 	"github.com/maybemaby/workpad/api/auth"
 	"github.com/maybemaby/workpad/api/notes"
 	"github.com/maybemaby/workpad/api/projects"
+	"github.com/maybemaby/workpad/frontend"
 	"github.com/oaswrap/spec-ui/config"
 	"github.com/oaswrap/spec/adapter/httpopenapi"
 	"github.com/oaswrap/spec/option"
@@ -65,6 +67,8 @@ func (s *Server) MountRoutesOapi() {
 		})
 	}
 
+	apiRoute := r.Group("/api")
+
 	authRoute := r.Group("/auth").With(option.GroupTags("auth"))
 
 	authRoute.Handle("GET /me", authMw.ThenFunc(authHandler.GetAuthMe)).With(
@@ -91,32 +95,32 @@ func (s *Server) MountRoutesOapi() {
 	projectsStore := projects.NewSqliteStore(s.sqliteDB)
 	projectsHandler := projects.NewHandler(projectsStore)
 
-	r.Handle("POST /projects", rootMw.ThenFunc(projectsHandler.CreateProject)).With(
+	apiRoute.Handle("POST /projects", rootMw.ThenFunc(projectsHandler.CreateProject)).With(
 		option.Request(new(projects.CreateProjectRequest)),
 		option.Response(201, new(projects.Project)),
 		option.Tags("Projects"),
 	)
 
-	r.Handle("GET /projects", rootMw.ThenFunc(projectsHandler.ListProjects)).With(
+	apiRoute.Handle("GET /projects", rootMw.ThenFunc(projectsHandler.ListProjects)).With(
 		option.Request(new(projects.ListProjectsRequest)),
 		option.Response(200, new([]projects.Project)),
 		option.Tags("Projects"),
 	)
 
-	r.Handle("GET /projects/{name}", rootMw.ThenFunc(projectsHandler.GetProject)).With(
+	apiRoute.Handle("GET /projects/{name}", rootMw.ThenFunc(projectsHandler.GetProject)).With(
 		option.Request(new(projects.GetProjectRequest)),
 		option.Response(200, new(projects.Project)),
 		option.Response(404, "Not Found"),
 		option.Tags("Projects"),
 	)
 
-	r.Handle("POST /projects/batch", rootMw.ThenFunc(projectsHandler.CreateMultipleProjects)).With(
+	apiRoute.Handle("POST /projects/batch", rootMw.ThenFunc(projectsHandler.CreateMultipleProjects)).With(
 		option.Request(new(projects.CreateMultipleProjectsRequest)),
 		option.Response(201, new([]projects.Project)),
 		option.Tags("Projects"),
 	)
 
-	r.Handle("DELETE /projects/{name}", rootMw.ThenFunc(projectsHandler.DeleteProject)).With(
+	apiRoute.Handle("DELETE /projects/{name}", rootMw.ThenFunc(projectsHandler.DeleteProject)).With(
 		option.Request(new(projects.GetProjectRequest)),
 		option.Response(204, nil),
 		option.Tags("Projects"),
@@ -126,32 +130,32 @@ func (s *Server) MountRoutesOapi() {
 	noteStore := notes.NewNoteService(s.sqliteDB)
 	notesHandler := notes.NewNoteHandler(noteStore)
 
-	r.Handle("GET /notes/by-date", rootMw.ThenFunc(notesHandler.GetNoteByDate)).With(
+	apiRoute.Handle("GET /notes/by-date", rootMw.ThenFunc(notesHandler.GetNoteByDate)).With(
 		option.Request(new(notes.GetNoteByDateRequest)),
 		option.Response(200, new(notes.Note)),
 		option.Response(404, "Not Found"),
 		option.Tags("Notes"),
 	)
 
-	r.Handle("POST /notes", rootMw.ThenFunc(notesHandler.CreateNote)).With(
+	apiRoute.Handle("POST /notes", rootMw.ThenFunc(notesHandler.CreateNote)).With(
 		option.Request(new(notes.CreateNoteRequest)),
 		option.Response(201, new(notes.Note)),
 		option.Tags("Notes"),
 	)
 
-	r.Handle("GET /notes/for-month", rootMw.ThenFunc(notesHandler.GetMonthNotes)).With(
+	apiRoute.Handle("GET /notes/for-month", rootMw.ThenFunc(notesHandler.GetMonthNotes)).With(
 		option.Request(new(notes.GetMonthNotesRequest)),
 		option.Response(200, new([]int)),
 		option.Tags("Notes"),
 	)
 
-	r.Handle("PUT /notes/excerpts", rootMw.ThenFunc(notesHandler.UpdateNoteExcerpts)).With(
+	apiRoute.Handle("PUT /notes/excerpts", rootMw.ThenFunc(notesHandler.UpdateNoteExcerpts)).With(
 		option.Request(new(notes.UpdateNoteExcerptRequest)),
 		option.Response(204, nil),
 		option.Tags("Notes"),
 	)
 
-	r.Handle("GET /notes/excerpts/{project}", rootMw.ThenFunc(notesHandler.GetExcerptsForProject)).With(
+	apiRoute.Handle("GET /notes/excerpts/{project}", rootMw.ThenFunc(notesHandler.GetExcerptsForProject)).With(
 		option.Request(new(notes.GetExcerptsForProjectRequest)),
 		option.Response(200, new([]notes.NoteExcerpt)),
 		option.Tags("Notes"),
@@ -162,6 +166,11 @@ func (s *Server) MountRoutesOapi() {
 		func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			if r.Method == http.MethodGet {
+				HandleSPA(frontend.Assets).ServeHTTP(w, r)
 				return
 			}
 
@@ -208,6 +217,53 @@ func MountSpa(mux *http.ServeMux, pattern string, filesys fs.FS) {
 		}
 
 		// Other error occurred
+		slog.Default().Error("Error accessing file", "error", err)
+		http.Error(w, "Error accessing file", http.StatusInternalServerError)
+	})
+}
+
+func HandleSPA(filesys fs.FS) http.Handler {
+
+	sub, err := fs.Sub(filesys, "build")
+
+	if err != nil {
+		panic(err)
+	}
+
+	// fs.WalkDir(sub, ".", func(path string, d fs.DirEntry, err error) error {
+	// 	slog.Default().Debug("Embedded SPA file", "path", path, "error", err)
+	// 	return nil
+	// })
+
+	fileServer := http.FileServer(http.FS(sub))
+	prefix := "build"
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+
+		slog.Default().Debug("SPA request", "path", path)
+
+		file, err := filesys.Open(prefix + path)
+
+		if err == nil {
+			file.Close()
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		if os.IsNotExist(err) {
+			indexData, err := fs.ReadFile(filesys, prefix+"/index.html")
+			if err != nil {
+				http.Error(w, "Index file not found", http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusOK)
+			w.Write(indexData)
+			return
+		}
+
 		http.Error(w, "Error accessing file", http.StatusInternalServerError)
 	})
 }
