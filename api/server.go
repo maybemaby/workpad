@@ -6,13 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
-	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
-	"github.com/maybemaby/workpad/api/auth"
 )
 
 type Server struct {
@@ -21,10 +16,8 @@ type Server struct {
 	srv      *http.Server
 	db       *sql.DB
 	sqliteDB *sqlx.DB
-	pool       *pgxpool.Pool
-	services   *services
-	jwtManager *auth.JwtManager
-	prod       bool
+	services *services
+	prod     bool
 }
 
 func NewServer(isProd bool) (*Server, error) {
@@ -36,35 +29,16 @@ func NewServer(isProd bool) (*Server, error) {
 
 	server.WithLogger(isProd)
 
-	pool, err := NewPool(context.Background(), !isProd)
-
-	if err != nil {
-		return nil, err
-	}
-
-	db := stdlib.OpenDBFromPool(pool)
-
-	server.db = db
-	server.pool = pool
-
 	// Initialize SQLite connection
-	sqliteDB, err := NewSqliteDB(context.Background(), !isProd)
+	sqliteDB, sqlDB, err := NewSqliteDB(context.Background(), !isProd)
 	if err != nil {
 		return nil, err
 	}
 
 	server.sqliteDB = sqliteDB
+	server.db = sqlDB
 
-	jwtManager := &auth.JwtManager{
-		AccessTokenSecret:    []byte(os.Getenv("ACCESS_TOKEN_SECRET")),
-		RefreshTokenSecret:   []byte(os.Getenv("REFRESH_TOKEN_SECRET")),
-		AccessTokenLifetime:  time.Minute * 15,
-		RefreshTokenLifetime: time.Hour * 24 * 30,
-	}
-
-	server.jwtManager = jwtManager
-
-	services := newServices(pool, server.logger, jwtManager)
+	services := newServices(server.logger)
 	server.services = services
 
 	return server, nil
