@@ -14,6 +14,10 @@
 		dialogOpen = !dialogOpen;
 	});
 
+	keys.onKeys(['ctrl', 'k'], () => {
+		dialogOpen = !dialogOpen;
+	});
+
 	let query = createGetProjectsQuery(
 		() => debouncedSearchTerm.current,
 		() => ({
