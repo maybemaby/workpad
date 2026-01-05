@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/maybemaby/workpad/api/notes"
 	"github.com/maybemaby/workpad/api/projects"
@@ -213,11 +214,17 @@ func HandleSPA(filesys fs.FS) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
+		immutablePath := strings.Contains(path, "/_app/immutable")
 
 		file, err := filesys.Open(prefix + path)
 
 		if err == nil {
 			file.Close()
+
+			if immutablePath {
+				w.Header().Add("Cache-Control", "max-age=3600")
+			}
+
 			fileServer.ServeHTTP(w, r)
 			return
 		}
