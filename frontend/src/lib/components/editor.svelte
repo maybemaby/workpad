@@ -21,7 +21,7 @@
 	let editedOnce = $state(false);
 
 	let lastUpdate = new SvelteDate();
-	let debouncedUpdate = new Debounced(() => lastUpdate.getTime(), 300);
+	let debouncedUpdate = new Debounced(() => lastUpdate.getTime(), 800);
 
 	$effect(() => {
 		(() => debouncedUpdate.current)();
