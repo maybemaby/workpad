@@ -49,7 +49,11 @@ func (h *NoteHandler) GetNoteByDate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteJSON(w, r, note)
+	err = utils.WriteJSON(w, r, note)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +73,11 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteJSON(w, r, note)
+	err = utils.WriteJSON(w, r, note)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *NoteHandler) GetMonthNotes(w http.ResponseWriter, r *http.Request) {
