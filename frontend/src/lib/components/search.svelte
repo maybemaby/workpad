@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Dialog, Command } from 'bits-ui';
 	import DialogContent from './dialog/content.svelte';
-	import { Debounced, PressedKeys } from 'runed';
+	import { Debounced } from 'runed';
 	import { createGetProjectsQuery } from '$lib/api/queries.svelte';
 
 	let searchTerm = $state('');

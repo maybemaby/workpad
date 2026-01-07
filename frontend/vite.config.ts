@@ -2,9 +2,10 @@ import devtoolsJson from 'vite-plugin-devtools-json';
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { svelteTesting } from '@testing-library/svelte/vite';
 
-export default defineConfig({
-	plugins: [sveltekit(), devtoolsJson()],
+export default defineConfig(({ mode }) => ({
+	plugins: [sveltekit(), devtoolsJson(), svelteTesting()],
 
 	test: {
 		expect: { requireAssertions: true },
@@ -15,15 +16,21 @@ export default defineConfig({
 
 				test: {
 					name: 'client',
-
 					browser: {
-						enabled: true,
-						provider: playwright(),
-						instances: [{ browser: 'chromium', headless: true }]
+						enabled: false
 					},
-
+					// browser: {
+					// 	enabled: true,
+					// 	provider: playwright(),
+					// 	instances: [{ browser: 'chromium', headless: true }]
+					// },
+					environment: 'jsdom',
 					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
-					exclude: ['src/lib/server/**']
+					exclude: ['src/lib/server/**'],
+					setupFiles: ['./vitest-setup.ts']
+				},
+				resolve: {
+					conditions: mode === 'test' ? ['browser'] : []
 				}
 			},
 
@@ -39,4 +46,4 @@ export default defineConfig({
 			}
 		]
 	}
-});
+}));
