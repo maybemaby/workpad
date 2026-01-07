@@ -89,7 +89,9 @@
 													class="date-picker-grid__body_cell"
 												>
 													<a
-														href={resolve(`/dates/${date.year}-${date.month}-${date.day}`)}
+														href={resolve(
+															`/dates/${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`
+														)}
 														data-sveltekit-preload-data="tap"
 													>
 														<Calendar.Day class="date-picker-grid__day">

@@ -1,22 +1,13 @@
 <script lang="ts">
 	import { Dialog, Command } from 'bits-ui';
 	import DialogContent from './dialog/content.svelte';
-	import { Debounced, PressedKeys } from 'runed';
+	import { Debounced } from 'runed';
 	import { createGetProjectsQuery } from '$lib/api/queries.svelte';
 
 	let searchTerm = $state('');
 	let debouncedSearchTerm = new Debounced(() => searchTerm, 300);
-	const keys = new PressedKeys();
 
 	let dialogOpen = $state(false);
-
-	keys.onKeys(['meta', 'k'], () => {
-		dialogOpen = !dialogOpen;
-	});
-
-	keys.onKeys(['ctrl', 'k'], () => {
-		dialogOpen = !dialogOpen;
-	});
 
 	let query = createGetProjectsQuery(
 		() => debouncedSearchTerm.current,
@@ -32,7 +23,16 @@
 			href: `/projects/${project.name}`
 		}));
 	});
+
+	function handleKeyDown(e: KeyboardEvent) {
+		if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+			e.preventDefault();
+			dialogOpen = !dialogOpen;
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleKeyDown} />
 
 <Dialog.Root bind:open={dialogOpen}>
 	<Dialog.Trigger class="btn muted icon">

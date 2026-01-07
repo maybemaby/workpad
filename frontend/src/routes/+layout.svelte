@@ -7,14 +7,17 @@
 	import Header from '$lib/components/header.svelte';
 	import '../app.css';
 	import type { LayoutProps } from './$types';
+	import QuickSwitcher from '$lib/components/quick-switcher.svelte';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	let { children }: LayoutProps = $props();
 
 	const queryClient = new QueryClient();
 
-	let pageDate = $derived.by(() => {
-		const routeId = page.route.id;
+	let routeId = $derived(page.route.id);
 
+	let pageDate = $derived.by(() => {
 		// Check if we're on a /dates/[date] route
 		if (routeId?.startsWith('/dates/')) {
 			const dateParam = page.params.date;
@@ -27,6 +30,11 @@
 		// Default to today if not on a date page
 		return undefined;
 	});
+
+	function handleSwitcherSelected(dateString: string) {
+		// Navigate to the selected date
+		goto(resolve(`/dates/${dateString}`));
+	}
 </script>
 
 <svelte:head>
@@ -41,6 +49,7 @@
 		<main>
 			{@render children()}
 		</main>
+		<QuickSwitcher id={routeId} path={page.url.pathname} onSelected={handleSwitcherSelected} />
 	</div>
 </QueryClientProvider>
 
