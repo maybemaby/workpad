@@ -10,11 +10,15 @@
 	import QuickSwitcher from '$lib/components/quick-switcher.svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { EditorFocus } from '$lib/focus.svelte';
+	import { untrack } from 'svelte';
 
 	let { children }: LayoutProps = $props();
 
 	const queryClient = new QueryClient();
 
+	let editorFocus = new EditorFocus();
+	let quickSwitcherOpen = $state(false);
 	let routeId = $derived(page.route.id);
 
 	let pageDate = $derived.by(() => {
@@ -35,6 +39,15 @@
 		// Navigate to the selected date
 		goto(resolve(`/dates/${dateString}`));
 	}
+
+	$effect(() => {
+		console.log(editorFocus.focused);
+		if (editorFocus.focused) {
+			untrack(() => {
+				quickSwitcherOpen = false;
+			});
+		}
+	});
 </script>
 
 <svelte:head>
@@ -49,7 +62,12 @@
 		<main>
 			{@render children()}
 		</main>
-		<QuickSwitcher id={routeId} path={page.url.pathname} onSelected={handleSwitcherSelected} />
+		<QuickSwitcher
+			id={routeId}
+			path={page.url.pathname}
+			onSelected={handleSwitcherSelected}
+			bind:open={quickSwitcherOpen}
+		/>
 	</div>
 </QueryClientProvider>
 

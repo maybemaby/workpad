@@ -7,14 +7,21 @@
 	import { Debounced } from 'runed';
 	import { ProjectTag, findMentionParents, type MentionNodes } from '$lib/editor/project';
 
+	export type FocusHandler = (props: {editor: Editor; event: FocusEvent }) => void;
+	export type BlurHandler = (props: {editor: Editor; event: FocusEvent }) => void;
+
 	let {
 		editable = true,
 		content,
-		onUpdate
+		onUpdate,
+		onFocus,
+		onBlur
 	}: {
 		editable?: boolean;
 		content?: Content;
 		onUpdate?: (data: { html: string; mentionNodes: MentionNodes[] }) => void;
+		onFocus?: FocusHandler;
+		onBlur?: BlurHandler;
 	} = $props();
 	let el = $state<HTMLElement>();
 	let editor = $derived<Editor | null>(content ? null : null);
@@ -67,8 +74,6 @@
 					};
 				});
 
-				console.log('Mention Nodes:', mentionNodes);
-
 				onUpdate?.({ html, mentionNodes });
 			}
 		});
@@ -78,6 +83,12 @@
 		editor = new Editor({
 			editable,
 			element: el,
+			onFocus(props) {
+				onFocus?.(props);
+			},
+			onBlur(props) {
+				onBlur?.(props);
+			},
 			extensions: [
 				StarterKit.configure({
 					paragraph: {

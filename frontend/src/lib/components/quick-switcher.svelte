@@ -6,9 +6,14 @@
 	let {
 		id,
 		path,
-		onSelected
-	}: { id: Page['route']['id']; path: string; onSelected?: (dateString: string) => void } =
-		$props();
+		onSelected,
+		open = $bindable(false)
+	}: {
+		id: Page['route']['id'];
+		path: string;
+		onSelected?: (dateString: string) => void;
+		open?: boolean;
+	} = $props();
 
 	let switchableRoute = $derived(id === '/' || id === '/dates/[date]');
 	let isDateRoute = $derived(id === '/dates/[date]');
@@ -20,8 +25,6 @@
 	});
 
 	let selectedDate = $state(defaultDate);
-
-	let open = $state(false);
 
 	function handleKeyDown(e: KeyboardEvent) {
 		if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j' && switchableRoute) {
@@ -39,16 +42,16 @@
 			open = false;
 		}
 
-		if (e.key === 'ArrowRight' && open) {
+		if (e.key === 'ArrowRight' && (e.metaKey || e.ctrlKey) && open) {
 			e.preventDefault();
 			selectedDate = selectedDate.add({ days: 1 });
-		} else if (e.key === 'ArrowLeft' && open) {
+		} else if (e.key === 'ArrowLeft' && (e.metaKey || e.ctrlKey) && open) {
 			e.preventDefault();
 			selectedDate = selectedDate.subtract({ days: 1 });
-		} else if (e.key === 'ArrowUp' && open) {
+		} else if (e.key === 'ArrowUp' && (e.metaKey || e.ctrlKey) && open) {
 			e.preventDefault();
 			selectedDate = selectedDate.subtract({ months: 1 });
-		} else if (e.key === 'ArrowDown' && open) {
+		} else if (e.key === 'ArrowDown' && (e.metaKey || e.ctrlKey) && open) {
 			e.preventDefault();
 			selectedDate = selectedDate.add({ months: 1 });
 		}
@@ -66,7 +69,7 @@
 <svelte:window onkeydown={handleKeyDown} />
 {#if open}
 	<Portal to="body">
-		<div class="container" role="dialog" aria-modal="true" aria-label="Quick Switcher">
+		<div class="container" role="dialog" aria-modal="true" aria-label="Quick Switcher" data-state-open={open}>
 			<div class="label">Go to:</div>
 			<div>
 				{selectedDate.year}-{String(selectedDate.month).padStart(2, '0')}-{String(
@@ -81,7 +84,7 @@
 	@keyframes entrance {
 		from {
 			opacity: 0;
-			transform: translateY(1rem) scale(0.95);
+			transform: translateY(1rem) scale(0.85);
 		}
 		to {
 			opacity: 1;

@@ -5,8 +5,9 @@
 		createUpdateExcerptMutation,
 		getNoteByDateQuery
 	} from '$lib/api/queries.svelte';
-	import Editor from '$lib/components/editor.svelte';
+	import Editor, { type BlurHandler, type FocusHandler } from '$lib/components/editor.svelte';
 	import type { MentionNodes } from '$lib/editor/project';
+	import { EditorFocus } from '$lib/focus.svelte';
 	import { getLocalTimeZone, today } from '@internationalized/date';
 
 	const updateNote = createAddNoteMutation();
@@ -37,10 +38,20 @@
 	};
 
 	let content = $derived(query.data?.html_content ?? undefined);
+
+	let focusState = new EditorFocus();
+
+	const focusHandler: FocusHandler = () => {
+		focusState.changeFocus(true);
+	};
+
+	const blurHandler: BlurHandler = () => {
+		focusState.changeFocus(false);
+	};
 </script>
 
 {#if !query.isPending}
 	{#key content}
-		<Editor editable {onUpdate} {content} />
+		<Editor editable {onUpdate} {content} onFocus={focusHandler} onBlur={blurHandler} />
 	{/key}
 {/if}
