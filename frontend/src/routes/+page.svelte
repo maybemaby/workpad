@@ -40,5 +40,7 @@
 </script>
 
 {#if !query.isPending}
-	<Editor editable {onUpdate} {content} />
+	{#key content}
+		<Editor editable {onUpdate} {content} />
+	{/key}
 {/if}
